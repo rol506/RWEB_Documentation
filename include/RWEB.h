@@ -9,10 +9,11 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #elif _WIN32
+#define WIN32_LEAN_AND_MEAN
+#pragma comment (lib, "Ws2_32.lib")
+#include <windows.h>
 #include <winsock2.h>
 #endif
-
-//TODO fix socket class for windows
 
 namespace rweb {
 
@@ -31,8 +32,8 @@ namespace rweb {
   public: 
     Socket(int clientQueue);
     ~Socket();
-    bool connect(const std::string& hostname, const int port);
-    SOCKFD accept();
+    //bool connect(const std::string& hostname, const int port);
+    SOCKFD acceptClient();
     bool sendMessage(SOCKFD clientSocket, const std::string& message);
     std::string getMessage(SOCKFD clientSocket);
     static void closeSocket(SOCKFD socket);
@@ -85,7 +86,7 @@ namespace rweb {
   typedef HTMLTemplate (*HTTPCallback)(const Request r);
 
   static std::string getExecutablePath();
-  static std::string calculateResourcePath();
+  static std::string calculateResourcePath(size_t level);
   static Request parseRequest(const std::string request);
   static void handleClient(const Request r, const SOCKFD newsockfd);
   static std::string getFileString(const std::string& filePath);
@@ -105,7 +106,11 @@ namespace rweb {
   bool init(bool debug = false, unsigned int level=0);
   //returns false on an error
   bool startServer(const int clientQueue);
+#ifdef __linux__
   void closeServer(int arg=0);
+#elif _WIN32
+  BOOL WINAPI closeServer(DWORD signal=CTRL_C_EVENT);
+#endif
 
   //HTTP RESPONCES
   const std::string HTTP_200 = "HTTP/1.1 200 OK\r\n";

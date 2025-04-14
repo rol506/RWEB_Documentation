@@ -1,19 +1,22 @@
-#include "../include/RWEB.h"
+#include <RWEB.h>
 
 #include <iostream>
 #include <string>
 #include <unordered_map>
-#include <unistd.h>
 #include <errno.h>
 #include <thread>
-#include <signal.h>
 #include <fstream>
 #include <sstream>
 
+#ifdef __linux__
+#include <unistd.h>
+#include <signal.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
+#elif _WIN32
+#include <ws2tcpip.h>
+#endif
 
 //TODO finish with sockets
 
@@ -39,6 +42,8 @@ namespace rweb
 #ifdef __linux__
 
     struct sockaddr_in serv_addr;
+
+    m_socket = SOCKFD{ 0 };
 
     m_socket.sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (m_socket.sockfd < 0)
@@ -76,6 +81,8 @@ namespace rweb
 
     m_result = NULL;
 
+    m_socket = SOCKFD{INVALID_SOCKET};
+
     int iResult = WSAStartup(MAKEWORD(2, 2), &m_wsaData);
     if (iResult != 0)
     {
@@ -90,7 +97,7 @@ namespace rweb
     m_hints.ai_protocol = IPPROTO_TCP;
 
     // Resolve the server address and port
-    iResult = getaddrinfo(NULL, serverPort, &m_hints, &m_result);
+    iResult = getaddrinfo(NULL, std::to_string(serverPort).c_str(), &m_hints, &m_result);
     if ( iResult != 0 ) {
       std::cerr << "[ERROR] getaddrinfo failed with error: " << iResult << "\n";
       WSACleanup();
@@ -141,7 +148,7 @@ namespace rweb
 
 #elif _WIN32
 
-    closeSocket(socket.sockfd);
+    closesocket(socket.sockfd);
 
 #endif
   }
@@ -182,81 +189,10 @@ namespace rweb
 #endif
   }
 
-  bool Socket::connect(const std::string& hostname, const int port)
+  /*bool Socket::connect(const std::string& hostname, const int port)
   {
-    /*m_port = port;
-
-    #ifdef __linux__
-    m_server = gethostbyname(hostname.c_str());
-    if (m_server == NULL)
-    {
-      if (m_debug)
-        std::cerr << "No such host: " << hostname << "!\n";
-      return false;
-    }
-    bzero((char*) &m_serv_addr, sizeof(m_serv_addr));
-    m_serv_addr.sin_family = AF_INET;
-    bcopy((char*)m_server->h_addr, (char*) &m_serv_addr.sin_addr.s_addr, m_server->h_length);
-    m_serv_addr.sin_port = htons(m_port);
-    if (::connect(m_sockfd, (struct sockaddr*) &m_serv_addr, sizeof(m_serv_addr)) < 0)
-    {
-      if (m_debug)
-        std::cerr << "Failed to connect!\n";
-      return false;
-    }
-
-    m_connected = true;
-    return true;
-#elif _WIN32
-
-    struct addrinfo* ptr = NULL;
-
-    std::string prt = std::to_string(m_port);
-
-    int iResult = getaddrinfo(hostname.c_str(), prt.c_str(), &m_hints, &m_result);
-    if (iResult != 0)
-    {
-      if (m_debug)
-        std::cerr << "getaddrinfo failed: " << iResult << "\n";
-      WSACleanup();
-      return false;
-    }
-
-    for (ptr = m_result; ptr != NULL; ptr=ptr->ai_next)
-    {
-      m_connectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-      if (m_connectSocket == INVALID_SOCKET)
-      {
-        if (m_debug)
-          std::cerr << "socket failed: " << WSAGetLastError() << "\n";
-        WSACleanup();
-        return false;
-      }
-
-      iResult = ::connect(m_connectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
-      if (iResult == SOCKET_ERROR)
-      {
-        closesocket(m_connectSocket);
-        m_connectSocket = INVALID_SOCKET;
-        continue;
-      }
-      break;
-    }
-
-    freeaddrinfo(m_result);
-    if (m_connectSocket == INVALID_SOCKET)
-    {
-      if (m_debug)
-        std::cerr << "Unable to connect to server!\n";
-      WSACleanup();
-      return false;
-    }
-
-    m_connected = true;
-    return true;
-#endif*/
     return false;
-  }
+  }*/
 
   bool Socket::sendMessage(SOCKFD clientSocket, const std::string& message)
   {
@@ -272,7 +208,7 @@ namespace rweb
     return true;
 #elif _WIN32
 
-    int iResult = send(clientSocket, message.c_str(), message.size(), 0);
+    int iResult = send(clientSocket.sockfd, message.c_str(), message.size(), 0);
     if (iResult == SOCKET_ERROR)
     {
       std::cerr << "[ERROR] send failed: " << WSAGetLastError() << "\n";
@@ -315,13 +251,13 @@ namespace rweb
 #elif _WIN32
 
     std::string request(SERVER_BUFLEN, '\0');
-    char buffer[SERVER_BUFLEN];
+    char* buffer = (char*)malloc(SERVER_BUFLEN);
     int received = 0;
 
     int iResult = 0;
 
     do {
-      iResult = recv(clientSocket.sockfd, &buffer, SERVER_BUFLEN, 0);
+      iResult = recv(clientSocket.sockfd, buffer, SERVER_BUFLEN, 0);
       request += std::string(buffer);
       received += iResult;
 
@@ -334,11 +270,12 @@ namespace rweb
       }
     } while (iResult > 0);
 
+    free(buffer);
     return request;
 #endif
   }
 
-  SOCKFD Socket::accept()
+  SOCKFD Socket::acceptClient()
   {
 #ifdef __linux__
 
@@ -351,32 +288,43 @@ namespace rweb
 
 #elif _WIN32
 
-    SOCKET ClientSocket = accept(m_socket.sockfd, NULL, NULL);
-    if (ClientSocket == INVALID_SOCKET) {
+    SOCKET ClientSocket = ::accept(m_socket.sockfd, NULL, NULL);
+    if (ClientSocket == INVALID_SOCKET && !shouldClose) {
       std::cerr << "[ERROR] accept failed with error: " << WSAGetLastError() << "\n";
       closesocket(m_socket.sockfd);
       WSACleanup();
     }
 
-    return {ClientSocket};
+    return SOCKFD{ClientSocket};
 
 #endif
   }
 
   static std::string getExecutablePath()
   {
-      char* path = (char*)malloc(1024);
-      ssize_t r;
-      r = readlink("/proc/self/exe", path, 1023);
-      std::string execPath = path;
-      delete path;
-      return execPath;
+#ifdef __linux__
+    char* path = (char*)malloc(1024);
+    size_t r;
+    r = readlink("/proc/self/exe", path, 1023);
+    std::string execPath = path;
+    free(path);
+    return execPath;
+#elif _WIN32
+    char* path = (char*)malloc(1024);
+    GetModuleFileName(NULL, path, 1024);
+    std::string execPath = path;
+    free(path);
+    return execPath;
+#endif
   }
 
   //see sourcePathLevel docs
   static std::string calculateResourcePath(size_t level)
   {
     std::string resPath = getExecutablePath();
+#ifdef _WIN32
+    level++; //on windows we have "Debug" folder -> increment level by 1
+#endif
     for (int i=0;i<=level;++i)
     {
       std::size_t pos = resPath.find_last_of("/\\");
@@ -494,9 +442,16 @@ namespace rweb
   {
     serverDebugMode = debug;
 
+#ifdef __linux
     signal(SIGINT, closeServer);
     signal(SIGTERM, closeServer);
-
+#elif _WIN32
+    if (!SetConsoleCtrlHandler(closeServer, TRUE))
+    {
+      std::cerr << "[ERROR] Failed to create Ctrl C handler!\n";
+      return false;
+    }
+#endif
     //resource path
     setResourcePath(calculateResourcePath(level));
     initialized = true;
@@ -507,90 +462,12 @@ namespace rweb
   //returns false on an error
   bool startServer(const int clientQueue)
   {
-    /*if (!initialized)
-    {
-      std::cout << "[ERROR] Server is not initialized!\n";
-      return false;
-    }
-    int n;
-    struct sockaddr_in serv_addr, cli_addr;
-
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0)
-    {
-      std::cerr << "[ERROR] Failed to create socket: " << describeError() << "\n";
-      return false;
-    }
-
-    const int enable = 1;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-    {
-      std::cerr << "[ERROR] setsockopt failed! (SO_REUSEADDR)\n";
-    }
-
-    bzero(&serv_addr, sizeof(serv_addr));
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(serverPort);
-
-    if (bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
-    {
-      std::cerr << "[ERROR] Failed to bind socket: " << describeError() << "\n";
-      close(sockfd);
-      return false;
-    }
-
-    listen(sockfd, clientQueue); 
-
-    int received = 0;
-
-    while (!shouldClose)
-    {
-      socklen_t cli_len = sizeof(cli_addr);
-      int newsockfd = accept(sockfd, (struct sockaddr*)&cli_addr, &cli_len);
-      if (newsockfd < 0)
-      {
-        if (shouldClose)
-          return true;
-
-        std::cerr << "[ERROR] Failed to accept client socket: " << describeError() << "\n";
-        return false;
-      }
-
-      std::string request(SERVER_BUFLEN, '\0');
-      do {
-        n = read(newsockfd, &request[0], SERVER_BUFLEN-1);
-        if (n < 0)
-        {
-          shutdown(newsockfd, SHUT_RDWR);
-          close(newsockfd);
-          if (shouldClose)
-            return true;
-
-          std::cerr << "[ERROR] Failed to read from client socket: " << describeError() << "\n";
-          return false;
-        }
-        if (n == 0 || request.find("\r\n\r\n") != std::string::npos)
-        {
-          break;
-        }
-        received += n;
-      } while (received < SERVER_BUFLEN-1);
-
-      Request req = parseRequest(request);
-
-      std::thread th(handleClient, req, newsockfd);
-      th.detach();
-    }
-
-    return true;*/
 
     serverSocket = std::make_shared<Socket>(clientQueue);
 
     while (!shouldClose)
     {
-      SOCKFD newSock = serverSocket->accept();
+      SOCKFD newSock = serverSocket->acceptClient();
 
       if (shouldClose)
       {
@@ -647,12 +524,29 @@ namespace rweb
     return; 
   }
 
+#ifdef __linux__
   void closeServer(int arg)
   {
+    //linux handler
     std::cout << "\n";
     shouldClose = true; 
     serverSocket = nullptr;
   }
+#elif _WIN32
+
+  BOOL WINAPI closeServer(DWORD signal)
+  {
+    //windows handler
+    if (signal == CTRL_C_EVENT)
+    {
+      std::cout << "\n";
+      shouldClose = true;
+      serverSocket = nullptr;
+    }
+    return TRUE;
+  }
+
+#endif
 
   static std::string getFileString(const std::string& filePath)
   {
@@ -748,7 +642,8 @@ namespace rweb
         }
         //std::cout << "[TEMPLATE] Found value name: " << name << "\n";
 
-        if (auto value = json.find(name); value != json.end())
+        auto value = json.find(name);
+        if (value != json.end())
         {
           //std::cout << "[TEMPLATE] Found value: " << *value << "\n";
 
