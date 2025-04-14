@@ -18,8 +18,6 @@
 #include <ws2tcpip.h>
 #endif
 
-//TODO finish with sockets
-
 namespace rweb
 {
   static std::string resourcePath = "";
