@@ -18,6 +18,8 @@
 #include <ws2tcpip.h>
 #endif
 
+//TODO add math support in templates
+
 namespace rweb
 {
   static std::string resourcePath = "";
@@ -186,11 +188,6 @@ namespace rweb
     std::cout << "[SERVER] Socket was shut down successfully!\n";
 #endif
   }
-
-  /*bool Socket::connect(const std::string& hostname, const int port)
-  {
-    return false;
-  }*/
 
   bool Socket::sendMessage(SOCKFD clientSocket, const std::string& message)
   {
@@ -546,7 +543,7 @@ namespace rweb
 
 #endif
 
-  static std::string getFileString(const std::string& filePath)
+  std::string getFileString(const std::string& filePath)
   {
     std::ifstream f;
     f.open(resourcePath + "/" + filePath, std::ios::in | std::ios::binary);
@@ -594,13 +591,69 @@ namespace rweb
   {
   }
 
+  //remove leading and trailing spaces
+  std::string trim(const std::string& str)
+  {
+    static const std::string ws = " \t\n";
+    auto first = str.find_first_not_of(ws);
+    auto last = str.find_last_not_of(ws);
+    return first == std::string::npos ? "" : str.substr(first, last-first+1);
+  }
+
+  std::vector<std::string> split(const std::string& s, char seperator)
+  {
+    std::vector<std::string> output;
+
+    std::string::size_type prev_pos = 0, pos = 0;
+
+    while((pos = s.find(seperator, pos)) != std::string::npos)
+    {
+      std::string substring(trim(s.substr(prev_pos, pos-prev_pos)));
+      if (substring.size() > 0)
+      {
+        output.push_back(substring);
+      }
+      prev_pos = ++pos;
+    }
+    output.push_back(trim(s.substr(prev_pos, pos-prev_pos))); // Last word
+    return output;
+  }
+
+  std::string getOperator(const std::string& s)
+  {
+    auto pos1 = s.find("{%")+2;
+    auto pos2 = s.substr(pos1).find("%}");
+    if (pos1 == std::string::npos || pos2 == std::string::npos)
+    {
+      return "";
+    }
+    return s.substr(pos1, pos2);
+  }
+
+  std::string replace(const std::string& s, const std::string& from, const std::string& to) noexcept
+  {
+    std::string cpy = s.substr();
+    size_t pos = cpy.find(from);
+    while (pos != std::string::npos)
+    {
+      cpy.replace(pos, from.size(), to);
+      if (pos + from.size() >= cpy.size())
+      {
+        break;
+      }
+
+      pos = cpy.find(from, pos+from.size());
+    }
+    return cpy;
+  } 
+
   void HTMLTemplate::renderJSON(const nlohmann::json& json)
   {
     std::string html = m_html;
     size_t sz = html.size();
 
-    int currLine = 0;
-    int currChar = 0;
+    int currLine = 1;
+    int currChar = 1;
 
     for (int i=0;i<sz;++i)
     {
@@ -608,37 +661,189 @@ namespace rweb
 
       if (c == '\n')
       {
-        currChar = 0;
+        currChar = 1;
         currLine++;
       } else {
         currChar++;
       }
 
-      if (c == '{' && m_html[i+1] == '%') //if or for 
+      if (c == '{' && m_html[i+1] == '%') //if/for 
       {
-        std::cout << "[TEMPLATE] Template error (" << currLine << ";" << currChar << "): conditions and loops are unsupported yet!\n";
-        return;
+        size_t startPos = i;
+        std::string condition;
+        std::string body;
+        size_t len = 0;
+        std::istringstream ss(m_html.substr(i+2));
+        std::getline(ss, condition, '%');
+        len = condition.size();
+        condition = trim(condition);
+        //std::cout << "[TEMPLATE] Found condition: " << '"' << condition << '"' << "\n";
+
+        auto elements = split(condition, ' '); 
+
+        if (elements[0] == "for")
+        {
+          if (elements.size() == 4)
+          {
+            std::string endfor = getOperator(m_html.substr(m_html.find(condition)));
+            while (trim(endfor) != "endfor" && trim(endfor) != "")
+            {
+              endfor = getOperator(m_html.substr(m_html.find(endfor)));
+            }
+
+            if (trim(endfor) == "endfor" && endfor != "")
+            {
+              size_t pos1 = m_html.find(condition)+len+1;
+              size_t pos2 = m_html.find("{%" + endfor + "%}");
+              body = trim(m_html.substr(pos1, pos2-pos1));
+              std::string res = "";
+
+              if (elements[2] != "in")
+              {
+                std::cerr << "[TEMPLATE] Bad for loop syntax!\n";
+
+                html.replace(pos2, endfor.size()+4, "");
+                html.replace(pos1-len-2, len+4, "");
+
+                i = 0;
+                m_html = html;
+                currLine = 1;
+                currChar = 1;
+                continue;
+              }
+
+              std::string result = "";
+              if (elements[3].substr(0, 5) == "range")
+              {
+                std::string count = elements[3].substr(6, elements[3].size()-6-1);
+                int cnt = atoi(count.c_str());
+                if (!cnt)
+                {
+                  std::cerr << "[TEMPLATE] Error: range only supports int argument > 0!\n";
+                } else {
+                  for (int k=0;k<cnt;++k)
+                  {
+                    result += replace(body, "{{" + elements[1] + "}}", std::to_string(k));
+                  }
+                }
+
+                //std::cout << "[TEMPLATE] for loop result: " << '"' << result << '"' << "\n";
+
+                //html.replace(pos1, pos2-pos1-1, result);
+
+              } else {
+                //iterating dict
+                std::string& name = elements[3];
+                
+                auto value = json.find(name);
+                if (value != json.end())
+                {
+                  if (value->is_array())
+                  {
+                    result = "";
+                    for (auto it = value->begin(); it != value->end();++it)
+                    { 
+                      std::string tmp = body;
+                      size_t pos1 = 0;
+                      do {
+                        pos1 = tmp.find("{{")+2;
+                        size_t pos2 = tmp.find("}}");
+                        if (pos1 == std::string::npos || pos2 == std::string::npos)
+                        {
+                          break;
+                        }
+
+                        std::string name = tmp.substr(pos1, pos2-pos1);
+                        std::vector<std::string> subscripts = split(name, '.');
+
+                        auto val = it->find(subscripts[1]);
+                        if (val == it->end())
+                        {
+                          std::cout << "[TEMPLATE] Can't find value of: " << subscripts[1] << "\n";
+                          break;
+                        }
+                        auto res = val;
+                        if (subscripts.size() > 2)
+                        {
+                          for (int i=1;i<subscripts.size();++i)
+                          {
+                            nlohmann::json::const_iterator tmp = val->find(subscripts[i]);
+                            if (tmp != val->end())
+                            {
+                              val = tmp;
+                            } else {
+                              std::cout << "[TEMPLATE] Can't find value of " << subscripts[i] << "\n";
+                              break;
+                            }
+                          }
+                        }
+
+                        res = val;
+                        tmp.replace(pos1-2, pos2-pos1+4, (std::string)*res);
+
+                      } while (pos1 != std::string::npos);
+                      result += tmp;
+                    }
+                  } else {
+                    if (value->is_object())
+                    {
+                      std::cerr << "[TEMPLATE] Iterating dicts is an unsupported option! Value of " << '"' << name << '"' << " is an object!\n";
+                    } else {
+                      std::cerr << "[TEMPLATE] Value of " << '"' << name << '"' << " is not a json dict or an array!\n";
+                    }
+                  }
+                } else {
+                  std::cerr << "[TEMPLATE] Could not find value with key " << '"' << name << '"' << "\n";
+                }
+              }
+
+              html.replace(startPos, m_html.find("{%" + endfor + "%}", startPos)-startPos+endfor.size()+4, result);
+
+              i = 0;
+              m_html = html;
+              sz = m_html.size();
+              currLine = 1;
+              currChar = 1;
+              continue;
+            } else {
+              std::cerr << "[TEMPLATE] Error: for loop must end with {% endfor %}!\n";
+              html.replace(startPos, m_html.find("{%" + endfor + "%}", startPos)-startPos+endfor.size()+4, "");
+              i = 0;
+              m_html = html;
+              sz = m_html.size();
+              currLine = 1;
+              currChar = 1;
+              continue;
+            }
+          }
+          
+          std::cerr << "[TEMPLATE] Error: invalid for loop syntax!\n";
+          html.replace(i, len+4, ""); 
+        } else if (elements[0] == "if")
+        {
+          return;
+        } else {
+          std::cerr << "[TEMPLATE] Error: unknown operator " << '"' << elements[0] << '"' << "\n";
+          std::cout << m_html << "\n";
+          html.replace(i, len+4, "");
+        }
+
+        m_html = html;
+        i = 0;
+        sz = m_html.size();
+        currLine = 1;
+        currChar = 1;
+
       } else if (c == '{' && m_html[i+1] == '{') //variable
       {
         std::string name;
         size_t len = 0;
-        for (int j=2;j+i<sz;++j)
-        {
-          char c = m_html[j+i];
-          if (c == '}')
-          {
-            if (m_html[j+i+1] != '}') //no second closing '}'
-            {
-              std::cout << "[TEMPLATE] Rendering error (" << currLine << ";" << currChar << "): key names must end with '}}'\n";
-              return;
-            }
-
-            name = m_html.substr(i+2, j-2);
-            len = j-2;
-            break;
-          }
-        }
-        //std::cout << "[TEMPLATE] Found value name: " << name << "\n";
+        std::istringstream ss(m_html.substr(i+2));
+        std::getline(ss, name, '}');
+        //len must be calculated before trimming
+        len = name.size();
+        name = trim(name);
+        //std::cout << "[TEMPLATE] Found variable: " << '"' << name << '"' << "\n";
 
         auto value = json.find(name);
         if (value != json.end())
@@ -673,6 +878,8 @@ namespace rweb
         m_html = html;
         i = 0;
         sz = m_html.size();
+        currLine = 1;
+        currChar = 1;
       }
     }
   }

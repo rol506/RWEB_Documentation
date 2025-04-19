@@ -59,7 +59,7 @@ static rweb::HTMLTemplate homePage(const rweb::Request r)
 {
   rweb::HTMLTemplate temp = rweb::createTemplate("index.html", rweb::HTTP_200);
 
-  nlohmann::json json = {{"ladno", "ladno"}, {"lol", "lol"}, {"ok", "ok"}};
+  nlohmann::json json = nlohmann::json::parse(rweb::getFileString("../menu.json"));
 
   temp.renderJSON(json);
 

@@ -89,7 +89,7 @@ namespace rweb {
   static std::string calculateResourcePath(size_t level);
   static Request parseRequest(const std::string request);
   static void handleClient(const Request r, const SOCKFD newsockfd);
-  static std::string getFileString(const std::string& filePath);
+  std::string getFileString(const std::string& filePath);
 
   std::string describeError();
   std::string getResourcePath();

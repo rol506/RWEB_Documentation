@@ -1,0 +1,15 @@
+{
+  "menu":
+  [
+    {
+      "url": "/home",
+      "title": "Главная"
+    },
+    {
+      "url": "/about",
+      "title": "О нас"
+    }
+  ],
+  "some_value": "value"
+}
+

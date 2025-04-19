@@ -7,7 +7,12 @@
     <link href="/style.css" rel="stylesheet">
   </head>
   <body>
-    <h1>Welcome to the example of the RWEB framework app!</h1>
-    <h2>Template value ladno is "{{ladno}} {{lol}}" and {{ok}}</h2>
+
+    <nav>
+      {% for m in menu %}
+        <div><a href="{{m.url}}" class="anim">{{m.title}}</a></div>
+      {% endfor %}
+    </nav>
+    <h1>Some value - {{some_value}}</h1>
   </body>
 </html>
