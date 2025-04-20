@@ -108,6 +108,7 @@ namespace rweb {
     //multiple seperators
   std::vector<std::string> split(const std::string& s, const std::string& seperator);
   double calculate(const std::string& expression);
+  const char *colorize(int font, int back=-1, int style=-1);
 
   //returns false on error
   bool init(bool debug = false, unsigned int level=0);
@@ -118,6 +119,18 @@ namespace rweb {
 #elif _WIN32
   BOOL WINAPI closeServer(DWORD signal=CTRL_C_EVENT);
 #endif
+
+  enum COLORS {
+      NC=-1,
+      BLACK,
+      RED,
+      GREEN,
+      YELLOW,
+      BLUE,
+      MAGENTA,
+      CYAN,
+      WHITE,
+  };
 
   //HTTP RESPONCES
   const std::string HTTP_200 = "HTTP/1.1 200 OK\r\n";

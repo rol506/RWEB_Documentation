@@ -19,8 +19,6 @@
 #include <ws2tcpip.h>
 #endif
 
-//TODO add math support in templates
-
 namespace rweb
 {
   static std::string resourcePath = "";
@@ -36,6 +34,22 @@ namespace rweb
 
   //use in case if you are running app in build folder, but editing source code folder (will step back <level> times for res folder)
   static int sourcePathLevel = 0; //set only at compile time for safety 
+
+
+#ifdef _WIN32
+  #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+  #define DISABLE_NEWLINE_AUTO_RETURN  0x0008
+
+  void activateVirtualTerminal()
+  {       
+      HANDLE handleOut = GetStdHandle(STD_OUTPUT_HANDLE);
+      DWORD consoleMode;
+      GetConsoleMode( handleOut , &consoleMode);
+      consoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+      consoleMode |= DISABLE_NEWLINE_AUTO_RETURN;            
+      SetConsoleMode( handleOut , consoleMode );
+  }
+#endif
 
   Socket::Socket(int clientQueue)
     : m_debug(false), m_connected(false)
@@ -433,6 +447,42 @@ namespace rweb
     return serverDebugMode;
   }
 
+  /**
+  * Colorize terminal colors ANSI escape sequences.
+  *
+  * @param font font color (-1 to 7), see COLORS enum
+  * @param back background color (-1 to 7), see COLORS enum
+  * @param style font style (1==bold, 4==underline)
+  **/
+  const char *colorize(int font, int back, int style) {
+
+    if (!initialized)
+    {
+      std::cerr << "[ERROR RWEB IS NOT INITIALIZED]\n";
+      return "\033[0m";
+    }
+
+    static char code[20];   
+    if (font >= 0)
+      font += 30;
+    else
+      font = 0;
+    if (back >= 0)
+      back += 40;
+    else
+      back = 0;
+
+    if (back > 0 && style > 0) {
+      sprintf(code, "\033[%d;%d;%dm", font, back, style);
+    } else if (back > 0) {
+      sprintf(code, "\033[%d;%dm", font, back);
+    } else {
+      sprintf(code, "\033[%dm", font);
+    }
+
+    return code;
+  }
+
   //returns false on an error (step <level> times back to find resource folder. use only for dev purposes)
   bool init(bool debug, unsigned int level)
   {
@@ -442,6 +492,7 @@ namespace rweb
     signal(SIGINT, closeServer);
     signal(SIGTERM, closeServer);
 #elif _WIN32
+    activateVirtualTerminal();
     if (!SetConsoleCtrlHandler(closeServer, TRUE))
     {
       std::cerr << "[ERROR] Failed to create Ctrl C handler!\n";
@@ -488,7 +539,7 @@ namespace rweb
     if (!r.isValid)
     {
       res = HTTP_400 + "\r\n";
-      std::cout << "[RESPONCE] " << r.path << " -- " << HTTP_400;
+      std::cout << "[RESPONCE] " << colorize(RED) << r.path << colorize(NC) << " -- " << HTTP_400.substr(9);
       serverSocket->sendMessage(newsockfd, res);
       Socket::closeSocket(newsockfd);
       return;
@@ -502,16 +553,22 @@ namespace rweb
       if (it2 != serverResources.end())
       {
         res = sendFile(HTTP_200, it2->second.first, it2->second.second);
-        std::cout << "[RESPONCE] " << r.path << " -- " << HTTP_200;
+        std::cout << "[RESPONCE] " << colorize(BLUE) << r.path << colorize(NC) << " -- " << HTTP_200.substr(9);
       } else { 
         res = HTTP_404 + "\r\n";
-        std::cout << "[RESPONCE] " << r.path << " -- " << HTTP_404;
+        std::cout << "[RESPONCE] " << colorize(RED) << r.path << colorize(NC) << " -- " << HTTP_404.substr(9);
       }
     } else {
       HTMLTemplate temp = it->second(r);
       res = temp.getStatusResponce() + "Content-Type: " + temp.getContentType() + "\r\nContent-Length: " + std::to_string(temp.getHTML().size()) + "\r\n\r\n";
       res += temp.getHTML();
-      std::cout << "[RESPONCE] " << r.path << " -- " << temp.getStatusResponce().substr(9);
+      if (temp.getStatusResponce().substr(9, 3) == "200")
+      {
+        std::cout << colorize(NC);
+      } else {
+        std::cout << colorize(RED);
+      }
+      std::cout << "[RESPONCE] " << colorize(NC) << r.path << " -- " << temp.getStatusResponce().substr(9) << colorize(NC);
     }
 
     //send result
@@ -527,6 +584,7 @@ namespace rweb
     std::cout << "\n";
     shouldClose = true; 
     serverSocket = nullptr;
+    std::cout << colorize(NC);
   }
 #elif _WIN32
 
@@ -539,6 +597,7 @@ namespace rweb
       shouldClose = true;
       serverSocket = nullptr;
     }
+    std::cout << colorize(NC);
     return TRUE;
   }
 

@@ -18,7 +18,7 @@ int main()
   const int atex = std::atexit(atexit_handler);
   if (atex)
   {
-    std::cout << "Failed to register atexit!\n";
+    std::cout << rweb::colorize(rweb::RED) << "Failed to register atexit!\n" << rweb::colorize(rweb::NC);
     rweb::closeServer();
     return -1;
   }
