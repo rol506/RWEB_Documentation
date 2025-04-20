@@ -37,8 +37,6 @@ namespace rweb
 
 
 #ifdef _WIN32
-  #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
-  #define DISABLE_NEWLINE_AUTO_RETURN  0x0008
 
   void activateVirtualTerminal()
   {       
@@ -480,6 +478,12 @@ namespace rweb
       sprintf(code, "\033[%dm", font);
     }
 
+    if (font == NC)
+    {
+      SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+      return "";
+    }
+
     return code;
   }
 
@@ -502,7 +506,7 @@ namespace rweb
     //resource path
     setResourcePath(calculateResourcePath(level));
     initialized = true;
-
+    std::cout << colorize(NC);
     return true;
   }
 
@@ -533,6 +537,7 @@ namespace rweb
 
   static void handleClient(const Request r, const SOCKFD newsockfd)
   {
+    std::cout << colorize(NC);
     std::string res;
     int n = 0;
 
@@ -553,7 +558,7 @@ namespace rweb
       if (it2 != serverResources.end())
       {
         res = sendFile(HTTP_200, it2->second.first, it2->second.second);
-        std::cout << "[RESPONCE] " << colorize(BLUE) << r.path << colorize(NC) << " -- " << HTTP_200.substr(9);
+        std::cout << "[RESPONCE] " << colorize(CYAN) << r.path << colorize(NC) << " -- " << HTTP_200.substr(9);
       } else { 
         res = HTTP_404 + "\r\n";
         std::cout << "[RESPONCE] " << colorize(RED) << r.path << colorize(NC) << " -- " << HTTP_404.substr(9);

@@ -13,6 +13,8 @@
 #pragma comment (lib, "Ws2_32.lib")
 #include <windows.h>
 #include <winsock2.h>
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#define DISABLE_NEWLINE_AUTO_RETURN  0x0008
 #endif
 
 namespace rweb {
