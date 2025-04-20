@@ -478,11 +478,13 @@ namespace rweb
       sprintf(code, "\033[%dm", font);
     }
 
+#ifdef _WIN32
     if (font == NC)
     {
       SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
       return "";
     }
+#endif
 
     return code;
   }
