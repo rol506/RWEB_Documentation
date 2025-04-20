@@ -445,46 +445,29 @@ namespace rweb
     return serverDebugMode;
   }
 
-  /**
-  * Colorize terminal colors ANSI escape sequences.
-  *
-  * @param font font color (-1 to 7), see COLORS enum
-  * @param back background color (-1 to 7), see COLORS enum
-  * @param style font style (1==bold, 4==underline)
-  **/
-  const char *colorize(int font, int back, int style) {
+  const char *colorize(int color) {
 
     if (!initialized)
     {
       std::cerr << "[ERROR RWEB IS NOT INITIALIZED]\n";
       return "\033[0m";
     }
-
+#ifdef __linux__
     static char code[20];   
-    if (font >= 0)
-      font += 30;
+    if (color >= 0)
+      color += 30;
     else
-      font = 0;
-    if (back >= 0)
-      back += 40;
-    else
-      back = 0;
-
-    if (back > 0 && style > 0) {
-      sprintf(code, "\033[%d;%d;%dm", font, back, style);
-    } else if (back > 0) {
-      sprintf(code, "\033[%d;%dm", font, back);
-    } else {
-      sprintf(code, "\033[%dm", font);
-    }
-
-    if (font == NC)
-    {
-      SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-      return "";
-    }
-
+      color = 0;
+    sprintf(code, "\033[%dm", color);
     return code;
+#else _WIN32
+    if (GetStdHandle(STD_OUTPUT_HANDLE) == INVALID_HANDLE_VALUE)
+      return "";
+    CONSOLE_SCREEN_BUFFER_INFO console_info;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &console_info);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x0F & color | 0xf0 & console_info.wAttributes);
+    return "";
+#endif
   }
 
   //returns false on an error (step <level> times back to find resource folder. use only for dev purposes)

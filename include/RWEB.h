@@ -110,7 +110,7 @@ namespace rweb {
     //multiple seperators
   std::vector<std::string> split(const std::string& s, const std::string& seperator);
   double calculate(const std::string& expression);
-  const char *colorize(int font, int back=-1, int style=-1);
+  const char *colorize(int font);
 
   //returns false on error
   bool init(bool debug = false, unsigned int level=0);
@@ -123,6 +123,7 @@ namespace rweb {
 #endif
 
   enum COLORS {
+#ifdef __linux
       NC=-1,
       BLACK,
       RED,
@@ -132,6 +133,19 @@ namespace rweb {
       MAGENTA,
       CYAN,
       WHITE,
+#else _WIN32
+
+    RED = FOREGROUND_RED | FOREGROUND_INTENSITY,
+    YELLOW = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY,
+    GREEN = FOREGROUND_GREEN | FOREGROUND_INTENSITY,
+    CYAN = FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
+    BLUE = FOREGROUND_BLUE | FOREGROUND_INTENSITY,
+    MAGENTA = FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY,
+    NC = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
+    GREY = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE,
+    BLACK = FOREGROUND_INTENSITY,
+
+#endif
   };
 
   //HTTP RESPONCES
