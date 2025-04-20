@@ -6,6 +6,7 @@
 
 int main()
 {
+  rweb::init(false);
   rweb::setResourcePath("/home/rol506/proj/C++/RWEB/tests/template/res/");
   rweb::HTMLTemplate temp = rweb::createTemplate("index.html", rweb::HTTP_200);
 
