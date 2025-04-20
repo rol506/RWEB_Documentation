@@ -1,7 +1,7 @@
 #include <RWEB.h>
 
 #include <iostream>
-#include <random>
+#include <iomanip>
 #include <string>
 #include <unordered_map>
 #include <errno.h>
@@ -1026,38 +1026,59 @@ namespace rweb
         //len must be calculated before trimming
         len = name.size();
         name = trim(name);
-        //std::cout << "[TEMPLATE] Found variable: " << '"' << name << '"' << "\n";
-
-        auto value = json.find(name);
-        if (value != json.end())
+        std::string body = name;
+        auto vec = split(name, " +-/*");
+        bool useMath = true;
+        for (auto l: vec)
         {
-          //std::cout << "[TEMPLATE] Found value: " << *value << "\n";
+          std::string res = "";
+          auto value = json.find(l);
+          if (value != json.end())
+          {
 
-          if (value->is_string())
-          {
-            html.replace(i, len+4, (std::string)*value);
-          } else if (value->is_number_integer() || value->is_number_unsigned())
-          {
-            html.replace(i, len+4, std::to_string((long long)*value));
-          } else if (value->is_number_float())
-          {
-            std::stringstream ss;
-            ss << (float)*value;
-            html.replace(i, len+4, ss.str());
-          } else if (value->is_array())
-          {
-            std::cerr << "[TEMPLATE] Failed to set array value for " << name << "\n";
-            html.replace(i, len+4, "");
-          }
-          else {
-            std::cerr << "[TEMPLATE] Value of " << name << " is unsupported type!\n";
-            html.replace(i, len+4, "");
-          }
+            //std::cout << "[TEMPLATE] Found value: " << *value << "\n";
 
-        } else {
-          std::cout << "[TEMPLATE] Not found value with key: " << name << "\n";
-          html.replace(i, len+4, "");
+            if (value->is_string())
+            {
+              res = *value;
+              useMath = false;
+            } else if (value->is_number_integer() || value->is_number_unsigned())
+            {
+              res = std::to_string((long long)*value);
+            } else if (value->is_number_float())
+            {
+              std::stringstream ss;
+              ss << (float)*value;
+              res = ss.str();
+            } else if (value->is_array())
+            {
+              std::cerr << "[TEMPLATE] Failed to set array value for " << name << "\n";
+              res = "";
+              useMath = false;
+            }
+            else {
+              std::cerr << "[TEMPLATE] Value of " << name << " is unsupported type!\n";
+              res = "";
+              useMath = false;
+            }
+
+            body = replace(body, l, res);
+          } else {
+          }
         }
+
+        if (useMath)
+        {
+          double r = calculate(body);
+          std::stringstream stream;
+          //stream << std::fixed << std::setprecision(0) << r;
+          stream << (float)r;
+          body = stream.str();
+        }
+
+        //std::cout << "[TEMPLATE] Found variable: " << '"' << name << '"' << "\n";
+        html.replace(i, len+4, body);
+        
         m_html = html;
         i = 0;
         sz = m_html.size();
