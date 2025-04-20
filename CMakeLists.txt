@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 
+#include(CTest)
+
 project(RWEB)
 
 #for clangd to work
@@ -15,10 +17,22 @@ add_library(RWEB
 )
 target_include_directories(RWEB PUBLIC include)
 
-add_executable(test
-  test.cpp
+add_executable(app
+  app.cpp
 )
 
-target_link_libraries(test RWEB)
+target_link_libraries(app RWEB)
 
-add_custom_command(TARGET test POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/res $<TARGET_FILE_DIR:${PROJECT_NAME}>/res)
+add_custom_command(TARGET app POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/res $<TARGET_FILE_DIR:${PROJECT_NAME}>/res)
+
+enable_testing()
+
+#TESTS
+#add_executable(TEST_CALC
+#  test_calc.cpp
+#)
+#target_link_libraries(TEST_CALC RWEB)
+#add_test(NAME CalcTest COMMAND TEST_CALC)
+
+add_subdirectory(tests/template)
+add_subdirectory(tests/calc)

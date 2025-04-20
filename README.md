@@ -13,6 +13,7 @@ CMakeLists.txt and .gitignore are config files
 Theese files may be safely deleted. They are just examples and tests
 ```
 res/ - resource folder for fremework
+tests/ - automatic tests folder
 test.cpp - entry point for C++ and routes config
 README.md - this README file
 ```

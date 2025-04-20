@@ -89,7 +89,6 @@ namespace rweb {
   static std::string calculateResourcePath(size_t level);
   static Request parseRequest(const std::string request);
   static void handleClient(const Request r, const SOCKFD newsockfd);
-  std::string getFileString(const std::string& filePath);
 
   std::string describeError();
   std::string getResourcePath();
@@ -101,6 +100,14 @@ namespace rweb {
   void addResource(const std::string& URLpath, const std::string& resourcePath, const std::string& contentType);
   HTMLTemplate createTemplate(const std::string& templatePath, const std::string& statusResponce);
   std::string sendFile(const std::string& statusResponce, const std::string& filePath, const std::string& contentType);
+
+  //utility
+  std::string getFileString(const std::string& filePath);
+  std::string replace(const std::string& s, const std::string& from, const std::string& to) noexcept;
+  std::vector<std::string> split(const std::string& s, char seperator);
+    //multiple seperators
+  std::vector<std::string> split(const std::string& s, const std::string& seperator);
+  double calculate(const std::string& expression);
 
   //returns false on error
   bool init(bool debug = false, unsigned int level=0);

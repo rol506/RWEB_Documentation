@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>testing my framework</title>
+    <link href="/style.css" rel="stylesheet">
+  </head>
+  <body>
+
+    <nav>
+      {% for m in menu %}
+        <div><a href="{{m.url}}" class="anim">{{m.title}}</a></div>
+      {% endfor %}
+    </nav>
+    <h1>Some value - {{some_value}}</h1>
+  </body>
+</html>

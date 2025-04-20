@@ -1,6 +1,7 @@
 #include <RWEB.h>
 
 #include <iostream>
+#include <random>
 #include <string>
 #include <unordered_map>
 #include <errno.h>
@@ -619,6 +620,25 @@ namespace rweb
     return output;
   }
 
+  //multiple seperators
+  std::vector<std::string> split(const std::string& s, const std::string& seperator)
+  {
+    std::vector<std::string> output;
+    std::string::size_type prev_pos = 0, pos = 0;
+
+    while ((pos = s.find_first_of(seperator, pos)) != std::string::npos)
+    {
+      std::string substring(trim(s.substr(prev_pos, pos-prev_pos)));
+      if (substring.size() > 0)
+      {
+        output.push_back(substring);
+      }
+      prev_pos = ++pos;
+    }
+    output.push_back(trim(s.substr(prev_pos, pos-prev_pos))); //last word
+    return output;
+  }
+
   std::string getOperator(const std::string& s)
   {
     auto pos1 = s.find("{%")+2;
@@ -646,6 +666,107 @@ namespace rweb
     }
     return cpy;
   } 
+
+  double calculate(const std::string& expression)
+  {
+    std::string expr = replace(expression, " ", ""); //remove spaces
+
+    while (expr.find_first_of("()") != std::string::npos)
+    {
+      auto pos1 = expr.find_last_of("(");
+      auto pos2 = expr.find_first_of(")", (pos1 == std::string::npos ? 0 : pos1));
+
+      if (pos1 == std::string::npos)
+      {
+        std::cerr << "[CALC] ERROR FOUND UNOPENED BRACKET: " << pos2 << "\n";
+        return 0;
+      }
+
+      if (pos2 == std::string::npos)
+      {
+        std::cerr << "[CALC] ERROR COUND UNCLOSED BRACKET!\n";
+        return 0;
+      }
+
+      std::string brackets = expr.substr(pos1+1, pos2-pos1-1);
+      double res = calculate(brackets);
+      expr.replace(pos1, pos2-pos1+1, std::to_string(res));
+    }
+
+    //without brackets
+    while (expr.find("**") != std::string::npos)
+    {
+      auto before1 = expr.substr(0, expr.find("**")).find_last_not_of("*"); 
+      auto before2 = expr.find_first_of("*/+-", before1+3); //+3 because ** is 2 length and the next char
+
+      std::string tmp = expr.substr(before1, before2-before1);
+      auto vec = split(tmp, "*");
+      expr = replace(expr, tmp, std::to_string((pow(atof(vec[0].c_str()), atof(vec[1].c_str())))));
+    } 
+
+    std::size_t pos1=0, pos2=0, pos3=0;
+    while (expr.find_first_of("* /") != std::string::npos)
+    {
+      while (pos2 != std::string::npos)
+      {
+        pos2 = expr.find_first_of("*+-/", pos1+1);
+        if (pos2 == std::string::npos)
+        {
+          break;
+        }
+        if (expr[pos2] == '*' || expr[pos2] == '/')
+        {
+          pos3 = expr.find_first_of("*+-/", pos2+1);  
+          if (expr[pos2] == '*')
+          {
+            double res = atof(expr.substr(pos1, pos2-pos1).c_str()) * atof(expr.substr(pos2+1, pos3-pos2-1).c_str());
+            expr = replace(expr, expr.substr(pos1, pos2-pos1) + expr[pos2] + expr.substr(pos2+1, pos3-pos2-1), std::to_string(res));
+            continue;
+          } else {
+            double res = atof(expr.substr(pos1, pos2-pos1).c_str()) / atof(expr.substr(pos2+1, pos3-pos2-1).c_str());
+            expr = replace(expr, expr.substr(pos1, pos2-pos1) + expr[pos2] + expr.substr(pos2+1, pos3-pos2-1), std::to_string(res));
+            continue;
+          }
+        } else {
+          pos1 = pos2+1;
+          pos2 = expr.find_first_of("*+-/", pos1+1);
+          continue;
+        }
+      }
+    }
+
+    pos1=0; pos2=0; pos3=0;
+    while (expr.find_first_of("+-") != std::string::npos)
+    {
+      while (pos2 != std::string::npos)
+      {
+        pos2 = expr.find_first_of("+-", pos1+1);
+        if (pos2 == std::string::npos)
+        {
+          break;
+        }
+        if (expr[pos2] == '+' || expr[pos2] == '-')
+        {
+          pos3 = expr.find_first_of("+-", pos2+1);  
+          if (expr[pos2] == '+')
+          {
+            double res = atof(expr.substr(pos1, pos2-pos1).c_str()) + atof(expr.substr(pos2+1, pos3-pos2-1).c_str());
+            expr = replace(expr, expr.substr(pos1, pos2-pos1) + expr[pos2] + expr.substr(pos2+1, pos3-pos2-1), std::to_string(res));
+            continue;
+          } else {
+            double res = atof(expr.substr(pos1, pos2-pos1).c_str()) - atof(expr.substr(pos2+1, pos3-pos2-1).c_str());
+            expr = replace(expr, expr.substr(pos1, pos2-pos1) + expr[pos2] + expr.substr(pos2+1, pos3-pos2-1), std::to_string(res));
+            continue;
+          }
+        } else {
+          pos1 = pos2+1;
+          pos2 = expr.find_first_of("*+-/", pos1+1);
+          continue;
+        }
+      }
+    }
+    return atof(expr.c_str());
+  }
 
   void HTMLTemplate::renderJSON(const nlohmann::json& json)
   {
@@ -726,10 +847,6 @@ namespace rweb
                     result += replace(body, "{{" + elements[1] + "}}", std::to_string(k));
                   }
                 }
-
-                //std::cout << "[TEMPLATE] for loop result: " << '"' << result << '"' << "\n";
-
-                //html.replace(pos1, pos2-pos1-1, result);
 
               } else {
                 //iterating dict
