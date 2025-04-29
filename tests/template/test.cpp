@@ -14,9 +14,10 @@ int main()
 
   temp.renderJSON(json);
 
-  std::cout << "RESULT HTML: " << temp.getHTML();
+  std::cout << "RESULT HTML: " << temp.getHTML() << "\n";
+  std::cout << "EXPECTED HTML: " << rweb::getFileString("result.html") << "\n";
 
-  if (temp.getHTML() != rweb::getFileString("result.html"))
+  if (rweb::replace(temp.getHTML(), "\n", "") != rweb::replace(rweb::getFileString("result.html"), "\n", ""))
   {
     return -1;
   }

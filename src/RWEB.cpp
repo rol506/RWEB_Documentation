@@ -1,13 +1,13 @@
 #include <RWEB.h>
 
 #include <iostream>
-#include <iomanip>
 #include <string>
 #include <unordered_map>
 #include <errno.h>
 #include <thread>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 #ifdef __linux__
 #include <unistd.h>
@@ -460,7 +460,7 @@ namespace rweb
       color = 0;
     sprintf(code, "\033[%dm", color);
     return code;
-#else _WIN32
+#elif _WIN32
     if (GetStdHandle(STD_OUTPUT_HANDLE) == INVALID_HANDLE_VALUE)
       return "";
     CONSOLE_SCREEN_BUFFER_INFO console_info;
@@ -648,48 +648,56 @@ namespace rweb
     return first == std::string::npos ? "" : str.substr(first, last-first+1);
   }
 
-  std::vector<std::string> split(const std::string& s, char seperator)
+  std::vector<std::string> split(const std::string& s, const std::string& seperator, int maxsplit)
   {
-    std::vector<std::string> output;
-
-    std::string::size_type prev_pos = 0, pos = 0;
-
-    while((pos = s.find(seperator, pos)) != std::string::npos)
-    {
-      std::string substring(trim(s.substr(prev_pos, pos-prev_pos)));
-      if (substring.size() > 0)
-      {
-        output.push_back(substring);
-      }
-      prev_pos = ++pos;
-    }
-    output.push_back(trim(s.substr(prev_pos, pos-prev_pos))); // Last word
-    return output;
-  }
-
-  //multiple seperators
-  std::vector<std::string> split(const std::string& s, const std::string& seperator)
-  {
+    int spt = maxsplit;
     std::vector<std::string> output;
     std::string::size_type prev_pos = 0, pos = 0;
 
-    while ((pos = s.find_first_of(seperator, pos)) != std::string::npos)
+    if (spt < 0)
     {
-      std::string substring(trim(s.substr(prev_pos, pos-prev_pos)));
-      if (substring.size() > 0)
+      while ((pos = s.find_first_of(seperator, pos)) != std::string::npos)
       {
-        output.push_back(substring);
+        std::string substring(trim(s.substr(prev_pos, pos-prev_pos)));
+        if (substring.size() > 0)
+        {
+          output.push_back(substring);
+        }
+        prev_pos = ++pos;
       }
-      prev_pos = ++pos;
+      output.push_back(trim(s.substr(prev_pos, pos-prev_pos))); //last word
+      return output;
+    } else {
+      while ((pos = s.find_first_of(seperator, pos)) != std::string::npos && spt > 1)
+      {
+        std::string substring(trim(s.substr(prev_pos, pos-prev_pos)));
+        if (substring.size() > 0)
+        {
+          output.push_back(substring);
+        }
+        prev_pos = ++pos;
+        spt--;
+      }
+      output.push_back(trim(s.substr(prev_pos, s.size()-prev_pos)));
+      return output;
     }
-    output.push_back(trim(s.substr(prev_pos, pos-prev_pos))); //last word
-    return output;
   }
 
   std::string getOperator(const std::string& s)
   {
     auto pos1 = s.find("{%")+2;
     auto pos2 = s.substr(pos1).find("%}");
+    if (pos1 == std::string::npos || pos2 == std::string::npos)
+    {
+      return "";
+    }
+    return s.substr(pos1, pos2);
+  }
+
+  std::string getVariable(const std::string& s)
+  {
+    auto pos1 = s.find("{{")+2;
+    auto pos2 = s.substr(pos1).find("}}");
     if (pos1 == std::string::npos || pos2 == std::string::npos)
     {
       return "";
@@ -716,6 +724,11 @@ namespace rweb
 
   double calculate(const std::string& expression)
   {
+    if (trim(expression) == "")
+    {
+      std::cout << colorize(YELLOW) << "[MATH] WARNING! Calculating an empty expression! Result will be 0" << colorize(NC) << "\n";
+      return 0;
+    }
     std::string expr = replace(expression, " ", ""); //remove spaces
 
     while (expr.find_first_of("()") != std::string::npos)
@@ -731,7 +744,7 @@ namespace rweb
 
       if (pos2 == std::string::npos)
       {
-        std::cerr << "[CALC] ERROR COUND UNCLOSED BRACKET!\n";
+        std::cerr << "[CALC] ERROR FOUND UNCLOSED BRACKET!\n";
         return 0;
       }
 
@@ -847,7 +860,7 @@ namespace rweb
         condition = trim(condition);
         //std::cout << "[TEMPLATE] Found condition: " << '"' << condition << '"' << "\n";
 
-        auto elements = split(condition, ' '); 
+        auto elements = split(condition, " ", 4); 
 
         if (elements[0] == "for")
         {
@@ -887,12 +900,117 @@ namespace rweb
                 int cnt = atoi(count.c_str());
                 if (!cnt)
                 {
-                  std::cerr << "[TEMPLATE] Error: range only supports int argument > 0!\n";
-                } else {
-                  for (int k=0;k<cnt;++k)
+                  //count is a statement
+                  auto els = split(count, "+-*/ ");
+                  for (auto it: els)
                   {
-                    result += replace(body, "{{" + elements[1] + "}}", std::to_string(k));
+                    std::string res = "";
+                    auto value = json.find(it);
+                    if (value != json.end())
+                    {
+
+                      //std::cout << "[TEMPLATE] Found value: " << *value << "\n";
+
+                      if (value->is_string())
+                      {
+                        res = *value;
+                      } else if (value->is_number_integer() || value->is_number_unsigned())
+                      {
+                        res = std::to_string((long long)*value);
+                      } else if (value->is_number_float())
+                      {
+                        std::stringstream ss;
+                        ss << (float)*value;
+                        res = ss.str();
+                      } else if (value->is_array())
+                      {
+                        std::cerr << "[TEMPLATE] Failed to set array value for " << it << "\n";
+                        res = "";
+                      }
+                      else {
+                        std::cerr << "[TEMPLATE] Value of " << it << " is unsupported type!\n";
+                        res = "";
+                      }
+
+                      count = replace(count, it, res);
+                    }
+
                   }
+                  if (auto f = std::find_if(count.begin(), count.end(), [](char c){return isalpha(c);}) == count.end())
+                  {
+                    //math does not have any variables -> ok
+                    double r = calculate(count);
+                    cnt = static_cast<int>(r); 
+                  } else {
+                    std::cout << "[TEMPLATE] Cannot form a math statement. Found undeclared variable at: " << f << "\n";
+                    cnt = 0;
+                  }
+                }
+                for (int k=0;k<cnt;++k)
+                {
+                  std::string tmp = body;
+                  std::string var;
+                  std::string var_start;
+                  while ((var_start = getVariable(tmp)) != "")
+                  {
+                    var = var_start;
+                    bool useMath = true;
+                    //count is a statement
+                    auto els = split(var, "+-*/ ");
+                    for (auto it: els)
+                    {
+                      std::string res = "";
+                      auto value = json.find(it);
+                      if (value != json.end())
+                      {
+
+                        if (value->is_string())
+                        {
+                          res = *value;
+                          useMath = false;
+                        } else if (value->is_number_integer() || value->is_number_unsigned())
+                        {
+                          res = std::to_string((long long)*value);
+                        } else if (value->is_number_float())
+                        {
+                          std::stringstream ss;
+                          ss << (float)*value;
+                          res = ss.str();
+                        } else if (value->is_array())
+                        {
+                          std::cerr << "[TEMPLATE] Failed to set array value for " << it << "\n";
+                          res = "";
+                          useMath = false;
+                        }
+                        else {
+                          std::cerr << "[TEMPLATE] Value of " << it << " is unsupported type!\n";
+                          res = "";
+                          useMath = false;
+                        }
+
+                        var = replace(var, it, res);
+                      } else {
+                        if (trim(it) == elements[1])
+                        {
+                          var = replace(var, it, std::to_string(k));
+                        }
+                      }
+                    }
+                    if (auto f = std::find_if(var.begin(), var.end(), [](char c){return isalpha(c);}) == var.end())
+                    {
+                      //math does not contain any variables -> ok
+                      double r = calculate(trim(var));
+                      std::stringstream stream;
+                      //stream << std::fixed << std::setprecision(0) << r;
+                      stream << (float)r;
+                      var = stream.str(); 
+                    } else {
+                      std::cout << "[TEMPLATE] Cannot form a math statement. Found undeclared variable at: " << f << "\n";
+                      var = "";
+                    }
+                    tmp = replace(tmp, "{{"+var_start+"}}", var);
+                  }
+                  result += tmp;
                 }
 
               } else {
@@ -917,19 +1035,85 @@ namespace rweb
                           break;
                         }
 
-                        std::string name = tmp.substr(pos1, pos2-pos1);
-                        std::vector<std::string> subscripts = split(name, '.');
+                        std::string name = tmp.substr(pos1, pos2-pos1); 
+                        std::vector<std::string> subscripts = split(name, ".");
+                        std::string sRes = "";
 
                         auto val = it->find(subscripts[1]);
                         if (val == it->end())
                         {
-                          std::cout << "[TEMPLATE] Can't find value of: " << subscripts[1] << "\n";
-                          break;
+                          auto els = split(subscripts[1], "+-*/ ");
+                          std::string expr = subscripts[1];
+                          for (auto i: els)
+                          {
+                            bool useMath = true;
+                            std::string res = "";
+                            auto l = it->find(i);
+                            if (l != it->end())
+                            {
+                              if (l->is_string())
+                              {
+                                res = *l;
+                                useMath = false;
+                              } else if (l->is_number_integer() || l->is_number_unsigned())
+                              {
+                                res = std::to_string((long long)*l);
+                              } else if (value->is_number_float())
+                              {
+                                std::stringstream ss;
+                                ss << (float)*l;
+                                res = ss.str();
+                              } else if (l->is_array())
+                              {
+                                std::cerr << "[TEMPLATE] Failed to set value: " << '"' << i << '"' <<  " is an array!\n";
+                                res = "";
+                                useMath = false;
+                              }
+                              else {
+                                std::cerr << "[TEMPLATE] Value of " << i << " is unsupported type!\n";
+                                res = "";
+                                useMath = false;
+                              }
+
+                              expr = replace(expr, i, res);
+                            }
+
+                            if (useMath)
+                            {
+                              if (auto f = std::find_if(expr.begin(), expr.end(), [](char c){return isalpha(c);}) == expr.end())
+                              {
+                                //math does not have any variables -> ok
+                                double r = calculate(expr);
+                                std::stringstream stream;
+                                //stream << std::fixed << std::setprecision(0) << r;
+                                stream << (float)r;
+                                sRes = stream.str();
+                              } else {
+                                std::cerr << "[TEMPLATE] Cannot form a math statement: found undeclared variable: " << '"' << expr << '"' << "\n";
+                                sRes = "";
+                              }
+                            } else {
+                              auto l = it->find(els[0]);
+                              if (l != it->end())
+                              {
+                                if (l->is_string())
+                                {
+                                  sRes = *l;
+                                } else {
+                                  std::cerr << "[TEMPLATE] Value of the " << '"' << els[0] << '"' << " is not a string!\n";
+                                  sRes = "";
+                                }
+                              } else {
+                                std::cerr << "[TEMPLATE] Cannot find value of the " << '"' << els[0] << '"' << "\n";
+                                sRes = "";
+                              }
+                            }
+                          }
                         }
                         auto res = val;
                         if (subscripts.size() > 2)
                         {
-                          for (int i=1;i<subscripts.size();++i)
+                          /*for (int i=1;i<subscripts.size();++i)
                           {
                             nlohmann::json::const_iterator tmp = val->find(subscripts[i]);
                             if (tmp != val->end())
@@ -939,11 +1123,19 @@ namespace rweb
                               std::cout << "[TEMPLATE] Can't find value of " << subscripts[i] << "\n";
                               break;
                             }
-                          }
+                          }*/
+                          std::cout << "[TEMPLATE] Too many subscripts in " << name << "\n";
+                          break;
                         }
 
                         res = val;
-                        tmp.replace(pos1-2, pos2-pos1+4, (std::string)*res);
+                        //FOUND VALUE (res)
+                        if (sRes == "")
+                        {
+                          sRes = *res;
+                        }
+
+                        tmp.replace(pos1-2, pos2-pos1+4, sRes);
 
                       } while (pos1 != std::string::npos);
                       result += tmp;
@@ -1016,9 +1208,6 @@ namespace rweb
           auto value = json.find(l);
           if (value != json.end())
           {
-
-            //std::cout << "[TEMPLATE] Found value: " << *value << "\n";
-
             if (value->is_string())
             {
               res = *value;
@@ -1050,14 +1239,20 @@ namespace rweb
 
         if (useMath)
         {
-          double r = calculate(body);
-          std::stringstream stream;
-          //stream << std::fixed << std::setprecision(0) << r;
-          stream << (float)r;
-          body = stream.str();
+          if (auto f = std::find_if(body.begin(), body.end(), [](char c){return isalpha(c);}) == body.end())
+          {
+            //math does not have any variables -> ok
+            double r = calculate(body);
+            std::stringstream stream;
+            //stream << std::fixed << std::setprecision(0) << r;
+            stream << (float)r;
+            body = stream.str();
+          } else {
+            std::cout << "[TEMPLATE] Cannot form a math statement. Found undeclared variable in " << '(' << body << ')' << "\n";
+            body = "";
+          }
         }
 
-        //std::cout << "[TEMPLATE] Found variable: " << '"' << name << '"' << "\n";
         html.replace(i, len+4, body);
         
         m_html = html;

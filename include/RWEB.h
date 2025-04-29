@@ -106,9 +106,8 @@ namespace rweb {
   //utility
   std::string getFileString(const std::string& filePath);
   std::string replace(const std::string& s, const std::string& from, const std::string& to) noexcept;
-  std::vector<std::string> split(const std::string& s, char seperator);
-    //multiple seperators
-  std::vector<std::string> split(const std::string& s, const std::string& seperator);
+  //std::vector<std::string> split(const std::string& s, char seperator, int maxsplit = -1);
+  std::vector<std::string> split(const std::string& s, const std::string& seperator, int maxsplit = -1);
   double calculate(const std::string& expression);
   const char *colorize(int font);
 
@@ -133,7 +132,7 @@ namespace rweb {
       MAGENTA,
       CYAN,
       WHITE,
-#else _WIN32
+#elif _WIN32
 
     RED = FOREGROUND_RED | FOREGROUND_INTENSITY,
     YELLOW = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY,

@@ -13,6 +13,20 @@
         <div><a href="{{m.url}}" class="anim">{{m.title}}</a></div>
       {% endfor %}
     </nav>
-    <h1>Some value ** 2 = {{some_value ** 2}}</h1>
+    <h1>Some value ** 2 = {{some_value ** 2}}</h1> 
+    <h1>ladno * 2 = {{ladno * 2}}</h1>
+    <h1>string = "{{st}}"</h1>
+    {% for m in range(0) %}
+    <h1>ladno - {{m}}</h1>
+    {% endfor %}
+    {% for m in range(some_value + 1) %}
+    <h1>{{m + 1}}</h1>
+    {% endfor %}
+    {% for m in range(some_value) %}
+    <h1>{{ m }}</h1>
+    {% endfor %}
+    {% for m in menu %}
+    <h1>{{m.url}} + 2 = {{m.la + 2}}</h1>
+    {% endfor %}
   </body>
 </html>
