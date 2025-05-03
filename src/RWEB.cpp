@@ -703,28 +703,21 @@ namespace rweb
   //'s' is the input string.
   //'from' is position from where to start.
   //'target'. Function will find {% target %} in 's'.
-  //'until'. If function finds {% until %} it stops.
   //'pos_out' will be position of found in target string.
   //'len_out' will be length of found substring.
-  static bool findOperator(const std::string& s, const std::size_t from, const std::string& target, const std::string& until, std::size_t* pos_out, std::size_t* len_out)
+  static bool findOperator(const std::string& s, const std::size_t from, const std::string& target, std::size_t* pos_out, std::size_t* len_out)
   {
     auto pos1 = s.find("{%", from);
     auto pos2 = s.find("%}", pos1)+2;
     std::string op = trim(s.substr(pos1+2, pos2-pos1-4));
-    if (op == "" || pos1 == std::string::npos || pos2 == std::string::npos || trim(op) == trim(until))
-    {
-      return false;
-    }
-    if (op == target)
-    {
-      *pos_out = pos1;
-      *len_out = pos2-pos1;
-      return true;
-    }
-    while ((trim(op) != target || op != "" || trim(op) != trim(until)) || (pos1 == std::string::npos || pos2 == std::string::npos))
+    while ((trim(op) != target || op != "") || (pos1 == std::string::npos))
     {
       pos1 = s.find("{%", pos1+1);
       pos2 = s.find("%}", pos1)+2;
+      if (pos1 == std::string::npos)
+      {
+        return false;
+      }
       op = trim(s.substr(pos1+2, pos2-pos1-4));
       if (op == target)
       {
@@ -732,13 +725,9 @@ namespace rweb
         *len_out = pos2-pos1;
         return true;
       }
-      if (op == trim(until))
-      {
-        return false;
-      }
     }
 
-    if (op != "" && trim(op) != trim(until))
+    if (op != "")
     {
       *pos_out = pos1;
       *len_out = pos2-pos1;
@@ -1412,9 +1401,9 @@ namespace rweb
           std::size_t endif_pos = 0;
           std::size_t endif_size = 0; 
 
-          findOperator(m_html, startPos, "else", "endif", &else_pos, &else_size);
+          findOperator(m_html, startPos, "else", &else_pos, &else_size);
 
-          if (!findOperator(m_html, startPos, "endif", "", &endif_pos, &endif_size))
+          if (!findOperator(m_html, startPos, "endif", &endif_pos, &endif_size))
           {
             std::cerr << "[TEMPLATE] Failed to find endif!\n";
             return;
