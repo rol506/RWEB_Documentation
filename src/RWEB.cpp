@@ -32,9 +32,8 @@ namespace rweb
   static bool initialized = false;
   static std::shared_ptr<Socket> serverSocket;
 
-  //use in case if you are running app in build folder, but editing source code folder (will step back <level> times for res folder)
-  static int sourcePathLevel = 0; //set only at compile time for safety 
-
+  //use in case if you are running app in build folder, but editing source code folder (will step back <level> times to find resource folder)
+  static const int sourcePathLevel = 0; //set only at compile time for safety 
 
 #ifdef _WIN32
 
@@ -487,7 +486,7 @@ namespace rweb
     }
 #endif
     //resource path
-    setResourcePath(calculateResourcePath(level));
+    setResourcePath(calculateResourcePath(getDebugState() ? level : 0));
     initialized = true;
     std::cout << colorize(NC);
     return true;
@@ -639,7 +638,6 @@ namespace rweb
   {
   }
 
-  //remove leading and trailing spaces
   std::string trim(const std::string& str)
   {
     static const std::string ws = " \t\n";
@@ -650,11 +648,11 @@ namespace rweb
 
   std::vector<std::string> split(const std::string& s, const std::string& seperator, int maxsplit)
   {
-    int spt = maxsplit;
+    int spt = maxsplit+1;
     std::vector<std::string> output;
     std::string::size_type prev_pos = 0, pos = 0;
 
-    if (spt < 0)
+    if (spt <= 0)
     {
       while ((pos = s.find_first_of(seperator, pos)) != std::string::npos)
       {
@@ -683,18 +681,93 @@ namespace rweb
     }
   }
 
-  std::string getOperator(const std::string& s)
+  //DEPRECATED!
+  //get first found operator {% ... %} in 's'.
+  //'pos_out' position of the found substring in 's'.
+  static std::string getOperator(const std::string& s, std::size_t* pos_out = nullptr)
   {
     auto pos1 = s.find("{%")+2;
     auto pos2 = s.substr(pos1).find("%}");
     if (pos1 == std::string::npos || pos2 == std::string::npos)
     {
+      if (pos_out)
+        *pos_out = 0;
       return "";
     }
+    if (pos_out)
+      *pos_out = pos1;
     return s.substr(pos1, pos2);
   }
 
-  std::string getVariable(const std::string& s)
+  //find {% 'target' %} in 's'. Returns true on success and false otherwise.
+  //'s' is the input string.
+  //'from' is position from where to start.
+  //'target'. Function will find {% target %} in 's'.
+  //'until'. If function finds {% until %} it stops.
+  //'pos_out' will be position of found in target string.
+  //'len_out' will be length of found substring.
+  static bool findOperator(const std::string& s, const std::size_t from, const std::string& target, const std::string& until, std::size_t* pos_out, std::size_t* len_out)
+  {
+    auto pos1 = s.find("{%", from);
+    auto pos2 = s.find("%}", pos1)+2;
+    std::string op = trim(s.substr(pos1+2, pos2-pos1-4));
+    if (op == "" || pos1 == std::string::npos || pos2 == std::string::npos || trim(op) == trim(until))
+    {
+      return false;
+    }
+    if (op == target)
+    {
+      *pos_out = pos1;
+      *len_out = pos2-pos1;
+      return true;
+    }
+    while ((trim(op) != target || op != "" || trim(op) != trim(until)) || (pos1 == std::string::npos || pos2 == std::string::npos))
+    {
+      pos1 = s.find("{%", pos1+1);
+      pos2 = s.find("%}", pos1)+2;
+      op = trim(s.substr(pos1+2, pos2-pos1-4));
+      if (op == target)
+      {
+        *pos_out = pos1;
+        *len_out = pos2-pos1;
+        return true;
+      }
+      if (op == trim(until))
+      {
+        return false;
+      }
+    }
+
+    if (op != "" && trim(op) != trim(until))
+    {
+      *pos_out = pos1;
+      *len_out = pos2-pos1;
+      return true;
+    }
+
+    return false;
+  }
+
+  //DEPRECATED!
+  //Same as the getOperator, but searches from the end.
+  static std::string getOperatorReverse(const std::string& s, std::size_t* pos_out = nullptr)
+  {
+    auto pos1 = s.rfind("{%")+2;
+    auto pos2 = s.substr(pos1).rfind("%}");
+    if (pos1 == std::string::npos || pos2 == std::string::npos)
+    {
+      if (pos_out)
+        *pos_out = 0;
+      return "";
+    }
+    if (pos_out)
+      *pos_out = pos1;
+    return s.substr(pos1, pos2);
+  }
+
+  //DEPRECATED!
+  //Returns first variable found in 's'.
+  static std::string getVariable(const std::string& s)
   {
     auto pos1 = s.find("{{")+2;
     auto pos2 = s.substr(pos1).find("}}");
@@ -858,9 +931,7 @@ namespace rweb
         std::getline(ss, condition, '%');
         len = condition.size();
         condition = trim(condition);
-        //std::cout << "[TEMPLATE] Found condition: " << '"' << condition << '"' << "\n";
-
-        auto elements = split(condition, " ", 4); 
+        auto elements = split(condition, " ", 3);
 
         if (elements[0] == "for")
         {
@@ -908,9 +979,6 @@ namespace rweb
                     auto value = json.find(it);
                     if (value != json.end())
                     {
-
-                      //std::cout << "[TEMPLATE] Found value: " << *value << "\n";
-
                       if (value->is_string())
                       {
                         res = *value;
@@ -1143,7 +1211,7 @@ namespace rweb
                   } else {
                     if (value->is_object())
                     {
-                      std::cerr << "[TEMPLATE] Iterating dicts is an unsupported option! Value of " << '"' << name << '"' << " is an object!\n";
+                      std::cerr << "[TEMPLATE] Iterating dicts is an unsupported option! Value of " << '"' << name << '"' << " is a json object!\n";
                     } else {
                       std::cerr << "[TEMPLATE] Value of " << '"' << name << '"' << " is not a json dict or an array!\n";
                     }
@@ -1177,7 +1245,218 @@ namespace rweb
           html.replace(i, len+4, ""); 
         } else if (elements[0] == "if")
         {
-          return;
+          // >0 -> true
+          // string != "" -> true
+
+          auto els = split(condition, " ", 1);
+
+          std::string cond = replace(els[1], " ", "");
+
+          size_t f;
+          bool status; //is condition true or false
+          std::string lv = "";
+          std::string rv = "";
+          std::string operation = "";
+          bool useMath = true;
+          double resL;
+          double resR;
+
+          if ((f=cond.find(">")) != std::string::npos) //greater
+          {
+            lv = cond.substr(0, f);
+            rv = cond.substr(f+1, cond.size()-f-1);
+            
+            operation = ">";
+          } else if ((f=cond.find("<")) != std::string::npos)
+          {
+            lv = cond.substr(0, f);
+            rv = cond.substr(f+1, cond.size()-f-1);
+            
+            operation = "<";
+          } else if ((f=cond.find("==")) != std::string::npos)
+          {
+            lv = cond.substr(0, f);
+            rv = cond.substr(f+2, cond.size() - f - 2);
+
+            operation = "==";
+          } else if ((f=cond.find("!=")) != std::string::npos)
+          {
+            lv = cond.substr(0, f);
+            rv = cond.substr(f+2, cond.size() - f - 2);
+
+            operation = "!=";
+          }
+
+          //calculating values
+          {
+            resL = 0;
+            resR = 0;
+
+            //math for left part
+            {
+              auto elsL = split(lv, "+-*/ "); //math elements left
+              for (auto e: elsL)
+              {
+                auto value = json.find(e);
+                std::string res = "";
+                if (value != json.end())
+                {
+                  if (value->is_string())
+                  {
+                    res = *value;
+                    useMath = false;
+                  } else if (value->is_number_integer() || value->is_number_unsigned())
+                  {
+                    res = std::to_string((long long)*value);
+                  } else if (value->is_number_float())
+                  {
+                    std::stringstream ss;
+                    ss << (float)*value;
+                    res = ss.str();
+                  } else if (value->is_array())
+                  {
+                    std::cerr << "[TEMPLATE] Failed to set array value for " << e << "\n";
+                    res = "";
+                    useMath = false;
+                  }
+                  else {
+                    std::cerr << "[TEMPLATE] Value of " << e << " is unsupported type!\n";
+                    res = "";
+                    useMath = false;
+                  }
+
+                  lv = replace(lv, e, res);
+                }
+              }
+
+              {
+                if (auto f = std::find_if(lv.begin(), lv.end(), [](char c){return isalpha(c);}) == lv.end())
+                {
+                  //math does not have any variables -> ok
+                  resL = calculate(lv);
+                } else {
+                  std::cout << "[TEMPLATE] Cannot form a math statement. Found undeclared variable in " << '(' << lv << ')' << "\n";
+                  resL = 0;
+                }
+              }
+            }
+            //math for right part
+            {
+              auto elsR = split(rv, "+-*/ "); //math elements right
+              bool useMath = true;
+              for (auto e: elsR)
+              {
+                auto value = json.find(e);
+                std::string res = "";
+                if (value != json.end())
+                {
+                  if (value->is_string())
+                  {
+                    res = *value;
+                    useMath = false;
+                  } else if (value->is_number_integer() || value->is_number_unsigned())
+                  {
+                    res = std::to_string((long long)*value);
+                  } else if (value->is_number_float())
+                  {
+                    std::stringstream ss;
+                    ss << (float)*value;
+                    res = ss.str();
+                  } else if (value->is_array())
+                  {
+                    std::cerr << "[TEMPLATE] Failed to set array value for " << e << "\n";
+                    res = "";
+                    useMath = false;
+                  }
+                  else {
+                    std::cerr << "[TEMPLATE] Value of " << e << " is unsupported type!\n";
+                    res = "";
+                    useMath = false;
+                  }
+
+                  rv = replace(rv, e, res);
+                }
+              }
+
+              {
+                if (auto f = std::find_if(rv.begin(), rv.end(), [](char c){return isalpha(c);}) == rv.end())
+                {
+                  //math does not have any variables -> ok
+                  resR = calculate(rv);
+                } else {
+                  std::cout << "[TEMPLATE] Cannot form a math statement. Found undeclared variable in " << '(' << rv << ')' << "\n";
+                  resR = 0;
+                }
+              }
+            }
+          }
+
+          if (operation == ">")
+            status = resL > resR;
+          else if (operation == "<")
+            status = resL < resR;
+          else if (operation == "==")
+            status = resL == resR;
+          else if (operation == "!=")
+            status = resL != resR;
+          else
+          {
+            std::cerr << colorize(RED) << "[TEMPLATE] Unknown operation! Something went wrong in the 'if' statement! Condition will be counted as false!" 
+              << colorize(NC) << "\n";
+            status = false;
+          }
+
+          std::string result = "";
+          std::size_t else_pos = 0;
+          std::size_t else_size = 0;
+          std::size_t endif_pos = 0;
+          std::size_t endif_size = 0; 
+
+          findOperator(m_html, startPos, "else", "endif", &else_pos, &else_size);
+
+          if (!findOperator(m_html, startPos, "endif", "", &endif_pos, &endif_size))
+          {
+            std::cerr << "[TEMPLATE] Failed to find endif!\n";
+            return;
+          }
+
+          if (endif_pos == 0) //no endif
+          {
+            std::cerr << "[TEMPLATE] Cannot find endif!\n";
+            result = "";
+          } else { //all ok
+            if (status) //true section
+            {
+              if (else_size != 0) //with else
+              {
+                result = m_html.substr(startPos + len+4, else_pos-startPos-len-4);
+              } else { //without else
+                result = m_html.substr(startPos+len+4, endif_pos-startPos-len-4);
+              }
+            } else { //false section
+              if (else_size != 0) //with else
+              {
+                result = m_html.substr(else_pos+else_size, endif_pos-else_pos-else_size);
+              } else { //without else
+                result = "";
+              }
+            }
+          }
+
+          std::string true_body = "";
+          std::string false_body = "";
+
+          if (else_size != 0)
+          {
+            true_body = m_html.substr(startPos+len+4, else_pos-startPos-len-4);
+            false_body = m_html.substr(else_pos+else_size, endif_pos-else_pos-else_size);
+          } else {
+            true_body = m_html.substr(startPos+len+4, endif_pos-startPos-len-4);
+          }
+
+          result = trim(status ? true_body : false_body);
+
+          html.replace(startPos, endif_pos+endif_size-startPos, result);
         } else {
           std::cerr << "[TEMPLATE] Error: unknown operator " << '"' << elements[0] << '"' << "\n";
           std::cout << m_html << "\n";

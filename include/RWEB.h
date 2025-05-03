@@ -65,6 +65,7 @@ namespace rweb {
     const std::string& getEncoding() const;
     const std::string& getContentType() const;
 
+    //Renderes a template with specified json
     void renderJSON(const nlohmann::json& json);
   private:
     std::string m_html;
@@ -87,10 +88,14 @@ namespace rweb {
 
   typedef HTMLTemplate (*HTTPCallback)(const Request r);
 
+  //---FRAMEWORK-INTERNAL---
+
   static std::string getExecutablePath();
   static std::string calculateResourcePath(size_t level);
   static Request parseRequest(const std::string request);
   static void handleClient(const Request r, const SOCKFD newsockfd);
+
+  //---FRAMEWORK---
 
   std::string describeError();
   std::string getResourcePath();
@@ -103,17 +108,28 @@ namespace rweb {
   HTMLTemplate createTemplate(const std::string& templatePath, const std::string& statusResponce);
   std::string sendFile(const std::string& statusResponce, const std::string& filePath, const std::string& contentType);
 
-  //utility
+  //---UTILITY---
+
+  //returns string found in file. "" in case of an error.
+  //'filePath' is the target file path from resource folder.
   std::string getFileString(const std::string& filePath);
+  //remove leading and trailing spaces in 'str'.
+  std::string trim(const std::string& str);
+  //returns string with replaced 'from' with 'to'.
   std::string replace(const std::string& s, const std::string& from, const std::string& to) noexcept;
-  //std::vector<std::string> split(const std::string& s, char seperator, int maxsplit = -1);
+  //splits 's' by chars from 'seperator'.
+  //'maxsplit' is the maximum count of splits. -1 by default.
   std::vector<std::string> split(const std::string& s, const std::string& seperator, int maxsplit = -1);
+  //does math. Returns 0 on error.
   double calculate(const std::string& expression);
+  //colorizes output. Usage: stream << colorize(color) << ... << colorize(NC) << "\n"; /*to clear color*/.
   const char *colorize(int font);
 
-  //returns false on error
+  //---FRAMEWORK---
+
+  //returns false on error.
   bool init(bool debug = false, unsigned int level=0);
-  //returns false on an error
+  //returns false on an error.
   bool startServer(const int clientQueue);
 #ifdef __linux__
   void closeServer(int arg=0);
@@ -147,7 +163,7 @@ namespace rweb {
 #endif
   };
 
-  //HTTP RESPONCES
+  //---HTTP RESPONCES---
   const std::string HTTP_200 = "HTTP/1.1 200 OK\r\n";
 
   const std::string HTTP_400 = "HTTP/1.1 400 Bad Request\r\n";
