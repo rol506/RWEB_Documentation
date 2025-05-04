@@ -23,7 +23,7 @@ int main()
     return -1;
   }
 
-  rweb::setPort(4221);
+  rweb::setPort(4222);
 
   rweb::addRoute("/", &homePage);
   rweb::addRoute("/index", &homePage);
@@ -59,9 +59,10 @@ static rweb::HTMLTemplate homePage(const rweb::Request r)
 {
   rweb::HTMLTemplate temp = rweb::createTemplate("index.html", rweb::HTTP_200);
 
-  nlohmann::json json = nlohmann::json::parse(rweb::getFileString("../menu.json"));
+  //std::cout << rweb::getFileString("config.json");
+  //nlohmann::json json = nlohmann::json::parse(rweb::getFileString("config.json"));
 
-  temp.renderJSON(json);
+  //temp.renderJSON(json);
 
   return temp;
 }
