@@ -2,6 +2,18 @@
 
 #include <string>
 
+#ifdef __linux__
+#include <netinet/in.h>
+#include <netdb.h>
+#elif _WIN32
+#undef UNICODE
+#define WIN32_LEAN_AND_MEAN
+#pragma comment (lib, "Ws2_32.lib")
+#include <windows.h>
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#define DISABLE_NEWLINE_AUTO_RETURN  0x0008
+#endif
+
 #include "Socket.h"
 #include "HTMLTemplate.h"
 #include "Utility.h"

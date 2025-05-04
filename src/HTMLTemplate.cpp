@@ -3,6 +3,7 @@
 #include "../include/Utility.h"
 
 #include <iostream>
+#include <sstream>
 
 namespace rweb
 { 
