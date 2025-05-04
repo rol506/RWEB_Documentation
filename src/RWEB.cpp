@@ -176,6 +176,16 @@ namespace rweb
     return serverPort;
   }
 
+  bool getShouldClose()
+  {
+    return shouldClose;
+  }
+
+  void setShouldClose(bool _shouldClose)
+  {
+    shouldClose = _shouldClose;
+  }
+
   bool getDebugState()
   {
     return serverDebugMode;
@@ -235,11 +245,11 @@ namespace rweb
 
     serverSocket = std::make_shared<Socket>(clientQueue);
 
-    while (!shouldClose)
+    while (!getShouldClose())
     {
       SOCKFD newSock = serverSocket->acceptClient();
 
-      if (shouldClose)
+      if (getShouldClose())
       {
         break;
       }
@@ -306,7 +316,7 @@ namespace rweb
   {
     //linux handler
     std::cout << "\n";
-    shouldClose = true; 
+    setShouldClose(true); 
     serverSocket = nullptr;
     std::cout << colorize(NC);
   }
@@ -318,7 +328,7 @@ namespace rweb
     if (signal == CTRL_C_EVENT)
     {
       std::cout << "\n";
-      shouldClose = true;
+      setShouldClose(true);
       serverSocket = nullptr;
     }
     std::cout << colorize(NC);

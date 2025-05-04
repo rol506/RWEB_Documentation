@@ -33,7 +33,6 @@ namespace rweb {
   public: 
     Socket(int clientQueue);
     ~Socket();
-    //bool connect(const std::string& hostname, const int port);
     SOCKFD acceptClient();
     bool sendMessage(SOCKFD clientSocket, const std::string& message);
     std::string getMessage(SOCKFD clientSocket);

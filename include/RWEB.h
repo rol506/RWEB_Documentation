@@ -31,6 +31,8 @@ namespace rweb {
   std::string describeError();
   std::string getResourcePath();
   int getPort();
+  bool getShouldClose();
+  void setShouldClose(bool _shouldClose);
   bool getDebugState();
   void setResourcePath(const std::string resPath);
   void setPort(const int port);

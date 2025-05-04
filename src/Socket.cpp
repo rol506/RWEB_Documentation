@@ -15,9 +15,9 @@
 namespace rweb
 {
 
-  bool shouldClose;
-  int serverPort;
-
+  int getPort();
+  bool getShouldClose();
+  void setShouldClose(bool _shouldClose);
   std::string describeError();
 
   Socket::Socket(int clientQueue)
@@ -33,7 +33,7 @@ namespace rweb
     if (m_socket.sockfd < 0)
     {
       std::cerr << "[ERROR] Can't open socket!\n";
-      shouldClose = true;
+      setShouldClose(true);
       return;
     }
 
@@ -41,7 +41,7 @@ namespace rweb
     if (setsockopt(m_socket.sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
     {
       std::cerr << "[ERROR] setsockopt failed! (SO_REUSEADDR)\n";
-      shouldClose = true;
+      setShouldClose(true);
       return;
     }
 
@@ -49,13 +49,13 @@ namespace rweb
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(serverPort);
+    serv_addr.sin_port = htons(getPort());
 
     if (bind(m_socket.sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
     {
       std::cerr << "[ERROR] Failed to bind socket: " << describeError() << "\n";
       close(m_socket.sockfd);
-      shouldClose = true;
+      setShouldClose(true);
       return;
     }
 
@@ -72,7 +72,7 @@ namespace rweb
     {
       std::cerr << "[ERROR] WSAStartup failed with error: " << iResult << "\n";
       std::cerr << "[ERROR] Can't open socket!\n";
-      shouldClose = true;
+      setShouldClose(true);
     }
 
     ZeroMemory(&m_hints, sizeof(m_hints));
@@ -81,11 +81,11 @@ namespace rweb
     m_hints.ai_protocol = IPPROTO_TCP;
 
     // Resolve the server address and port
-    iResult = getaddrinfo(NULL, std::to_string(serverPort).c_str(), &m_hints, &m_result);
+    iResult = getaddrinfo(NULL, std::to_string(getPort()).c_str(), &m_hints, &m_result);
     if ( iResult != 0 ) {
       std::cerr << "[ERROR] getaddrinfo failed with error: " << iResult << "\n";
       WSACleanup();
-      shouldClose = true;
+      setShouldClose(true);
       return;
     }
 
@@ -95,7 +95,7 @@ namespace rweb
       std::cerr << "[ERROR] socket failed with error: " << WSAGetLastError() << "\n";
       freeaddrinfo(m_result);
       WSACleanup();
-      shouldClose = true;
+      setShouldClose(true);
       return;
     }
 
@@ -106,7 +106,7 @@ namespace rweb
       freeaddrinfo(m_result);
       closesocket(m_socket.sockfd);
       WSACleanup();
-      shouldClose = true;
+      setShouldClose(true);
       return;
     }
 
@@ -117,7 +117,7 @@ namespace rweb
       std::cerr << "[ERROR] listen failed with error: " << WSAGetLastError() << "\n";
       closesocket(m_socket.sockfd);
       WSACleanup();
-      shouldClose = true;
+      setShouldClose(true);
       return;
     }
 #endif
@@ -141,7 +141,7 @@ namespace rweb
   {
 
     m_connected = false;
-    shouldClose = true;
+    setShouldClose(true);
 
 #ifdef __linux__
 
@@ -212,7 +212,7 @@ namespace rweb
       {
         shutdown(clientSocket.sockfd, SHUT_RDWR);
         close(clientSocket.sockfd);
-        if (shouldClose)
+        if (getShouldClose())
           return request;
 
         std::cerr << "[ERROR] Failed to read from client socket: " << describeError() << "\n";
@@ -268,7 +268,7 @@ namespace rweb
 #elif _WIN32
 
     SOCKET ClientSocket = ::accept(m_socket.sockfd, NULL, NULL);
-    if (ClientSocket == INVALID_SOCKET && !shouldClose) {
+    if (ClientSocket == INVALID_SOCKET && !getShouldClose()) {
       std::cerr << "[ERROR] accept failed with error: " << WSAGetLastError() << "\n";
       closesocket(m_socket.sockfd);
       WSACleanup();
