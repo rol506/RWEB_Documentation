@@ -296,13 +296,16 @@ namespace rweb
       HTMLTemplate temp = it->second(r);
       res = temp.getStatusResponce() + "Content-Type: " + temp.getContentType() + "\r\nContent-Length: " + std::to_string(temp.getHTML().size()) + "\r\n\r\n";
       res += temp.getHTML();
-      if (temp.getStatusResponce().substr(9, 3) == "200")
+
+      std::cout << "[RESPONCE] ";
+      if (temp.getStatusResponce().substr(9, 1) == "2")
       {
         std::cout << colorize(NC);
       } else {
         std::cout << colorize(RED);
+        res = temp.getStatusResponce();
       }
-      std::cout << "[RESPONCE] " << colorize(NC) << r.path << " -- " << temp.getStatusResponce().substr(9) << colorize(NC);
+      std::cout << r.path << colorize(NC) << " -- " << temp.getStatusResponce().substr(9);
     }
 
     //send result

@@ -62,16 +62,5 @@ namespace rweb {
 #elif _WIN32
   BOOL WINAPI closeServer(DWORD signal=CTRL_C_EVENT);
 #endif
-
-  //---HTTP RESPONCES---
-  const std::string HTTP_200 = "HTTP/1.1 200 OK\r\n";
-
-  const std::string HTTP_400 = "HTTP/1.1 400 Bad Request\r\n";
-  const std::string HTTP_401 = "HTTP/1.1 401 Unauthorized\r\n";
-  const std::string HTTP_403 = "HTTP/1.1 403 Forbidden\r\n";
-  const std::string HTTP_404 = "HTTP/1.1 404 Not Found\r\n";
-  const std::string HTTP_405 = "HTTP/1.1 405 Method Not Allowed\r\n";
-
-  const std::string HTTP_500 = "HTTP/1.1 500 Internal Server Error\r\n";
 }
 

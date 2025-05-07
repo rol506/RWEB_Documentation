@@ -42,3 +42,4 @@ enable_testing()
 
 add_subdirectory(tests/template)
 add_subdirectory(tests/calc)
+add_subdirectory(tests/template_if)

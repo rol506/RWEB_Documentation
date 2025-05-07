@@ -145,7 +145,9 @@ namespace rweb
 
               if (elements[2] != "in")
               {
-                std::cerr << "[TEMPLATE] Bad for loop syntax!\n";
+                std::cerr << colorize(RED) <<  "[TEMPLATE] Bad for loop syntax!" << colorize(NC) << "\n";
+                m_responce = HTTP_500;
+                return;
 
                 html.replace(pos2, endfor.size()+4, "");
                 html.replace(pos1-len-2, len+4, "");
@@ -185,11 +187,15 @@ namespace rweb
                         res = ss.str();
                       } else if (value->is_array())
                       {
-                        std::cerr << "[TEMPLATE] Failed to set array value for " << it << "\n";
+                        std::cerr << colorize(RED) << "[TEMPLATE] Failed to set array value for " << it << colorize(NC) << "\n";
+                        m_responce = HTTP_500;
+                        return;
                         res = "";
                       }
                       else {
-                        std::cerr << "[TEMPLATE] Value of " << it << " is unsupported type!\n";
+                        std::cerr << colorize(RED) << "[TEMPLATE] Value of " << it << " is unsupported type!" << colorize(NC) << "\n";
+                        m_responce = HTTP_500;
+                        return;
                         res = "";
                       }
 
@@ -203,7 +209,9 @@ namespace rweb
                     double r = calculate(count);
                     cnt = static_cast<int>(r); 
                   } else {
-                    std::cout << "[TEMPLATE] Cannot form a math statement. Found undeclared variable at: " << f << "\n";
+                    std::cout << colorize(RED) <<  "[TEMPLATE] Cannot form a math statement. Found undeclared variable at: " << f << colorize(NC) << "\n";
+                    m_responce = HTTP_500;
+                    return;
                     cnt = 0;
                   }
                 }
@@ -239,12 +247,16 @@ namespace rweb
                           res = ss.str();
                         } else if (value->is_array())
                         {
-                          std::cerr << "[TEMPLATE] Failed to set array value for " << it << "\n";
+                          std::cerr << colorize(RED) << "[TEMPLATE] Failed to set array value for " << it << colorize(NC) << "\n";
+                          m_responce = HTTP_500;
+                          return;
                           res = "";
                           useMath = false;
                         }
                         else {
-                          std::cerr << "[TEMPLATE] Value of " << it << " is unsupported type!\n";
+                          std::cerr << colorize(RED) << "[TEMPLATE] Value of " << it << " is unsupported type!" << colorize(NC) << "\n";
+                          m_responce = HTTP_500;
+                          return;
                           res = "";
                           useMath = false;
                         }
@@ -266,7 +278,9 @@ namespace rweb
                       stream << (float)r;
                       var = stream.str(); 
                     } else {
-                      std::cout << "[TEMPLATE] Cannot form a math statement. Found undeclared variable at: " << f << "\n";
+                      std::cout << colorize(RED) << "[TEMPLATE] Cannot form a math statement. Found undeclared variable at: " << f << colorize(NC) << "\n";
+                      m_responce = HTTP_500;
+                      return;
                       var = "";
                     }
                     tmp = replace(tmp, "{{"+var_start+"}}", var);
@@ -326,12 +340,16 @@ namespace rweb
                                 res = ss.str();
                               } else if (l->is_array())
                               {
-                                std::cerr << "[TEMPLATE] Failed to set value: " << '"' << i << '"' <<  " is an array!\n";
+                                std::cerr << colorize(RED) <<  "[TEMPLATE] Failed to set value: " << '"' << i << '"' <<  " is an array!" << colorize(NC) << "\n";
+                                m_responce = HTTP_500;
+                                return;
                                 res = "";
                                 useMath = false;
                               }
                               else {
-                                std::cerr << "[TEMPLATE] Value of " << i << " is unsupported type!\n";
+                                std::cerr << colorize(RED) << "[TEMPLATE] Value of " << i << " is unsupported type!" << colorize(NC) << "\n";
+                                m_responce = HTTP_500;
+                                return;
                                 res = "";
                                 useMath = false;
                               }
@@ -350,7 +368,10 @@ namespace rweb
                                 stream << (float)r;
                                 sRes = stream.str();
                               } else {
-                                std::cerr << "[TEMPLATE] Cannot form a math statement: found undeclared variable: " << '"' << expr << '"' << "\n";
+                                std::cerr << colorize(RED) << "[TEMPLATE] Cannot form a math statement: found undeclared variable: " << '"' << expr << '"' << 
+                                  colorize(NC) << "\n";
+                                m_responce = HTTP_500;
+                                return;
                                 sRes = "";
                               }
                             } else {
@@ -361,11 +382,15 @@ namespace rweb
                                 {
                                   sRes = *l;
                                 } else {
-                                  std::cerr << "[TEMPLATE] Value of the " << '"' << els[0] << '"' << " is not a string!\n";
+                                  std::cerr << colorize(RED) << "[TEMPLATE] Value of the " << '"' << els[0] << '"' << " is not a string!" << colorize(NC) << "\n";
+                                  m_responce = HTTP_500;
+                                  return;
                                   sRes = "";
                                 }
                               } else {
-                                std::cerr << "[TEMPLATE] Cannot find value of the " << '"' << els[0] << '"' << "\n";
+                                std::cerr << colorize(RED) << "[TEMPLATE] Cannot find value of the " << '"' << els[0] << '"' << colorize(NC) << "\n";
+                                m_responce = HTTP_500;
+                                return;
                                 sRes = "";
                               }
                             }
@@ -385,7 +410,9 @@ namespace rweb
                               break;
                             }
                           }*/
-                          std::cout << "[TEMPLATE] Too many subscripts in " << name << "\n";
+                          std::cout << colorize(RED) << "[TEMPLATE] Too many subscripts in " << name << colorize(NC) << "\n";
+                          m_responce = HTTP_500;
+                          return;
                           break;
                         }
 
@@ -404,13 +431,20 @@ namespace rweb
                   } else {
                     if (value->is_object())
                     {
-                      std::cerr << "[TEMPLATE] Iterating dicts is an unsupported option! Value of " << '"' << name << '"' << " is a json object!\n";
+                      std::cerr << colorize(RED) << "[TEMPLATE] Iterating dicts is an unsupported option! Value of " << '"' << name << '"' << " is a json object!"
+                        << colorize(NC) << "\n";
+                      m_responce = HTTP_500;
+                      return;
                     } else {
-                      std::cerr << "[TEMPLATE] Value of " << '"' << name << '"' << " is not a json dict or an array!\n";
+                      std::cerr << colorize(RED) << "[TEMPLATE] Value of " << '"' << name << '"' << " is not a json dict or an array!" << colorize(NC) << "\n";
+                      m_responce = HTTP_500;
+                      return;
                     }
                   }
                 } else {
-                  std::cerr << "[TEMPLATE] Could not find value with key " << '"' << name << '"' << "\n";
+                  std::cerr << colorize(RED) << "[TEMPLATE] Could not find value with key " << '"' << name << '"' << colorize(NC) << "\n";
+                  m_responce = HTTP_500;
+                  return;
                 }
               }
 
@@ -423,7 +457,9 @@ namespace rweb
               currChar = 1;
               continue;
             } else {
-              std::cerr << "[TEMPLATE] Error: for loop must end with {% endfor %}!\n";
+              std::cerr << colorize(RED) << "[TEMPLATE] Error: for loop must end with {% endfor %}!" << colorize(NC) << "\n";
+              m_responce = HTTP_500;
+              return;
               html.replace(startPos, m_html.find("{%" + endfor + "%}", startPos)-startPos+endfor.size()+4, "");
               i = 0;
               m_html = html;
@@ -434,8 +470,10 @@ namespace rweb
             }
           }
           
-          std::cerr << "[TEMPLATE] Error: invalid for loop syntax!\n";
-          html.replace(i, len+4, ""); 
+          std::cerr << colorize(RED) << "[TEMPLATE] Error: invalid for loop syntax!" << colorize(NC) << "\n";
+          //html.replace(i, len+4, ""); 
+          m_responce = HTTP_500;
+          return;
         } else if (elements[0] == "if")
         {
           // >0 -> true
@@ -508,14 +546,18 @@ namespace rweb
                     res = ss.str();
                   } else if (value->is_array())
                   {
-                    std::cerr << "[TEMPLATE] Failed to set array value for " << e << "\n";
+                    std::cerr << colorize(RED) << "[TEMPLATE] Failed to set array value for " << e << colorize(NC) << "\n";
                     res = "";
                     useMath = false;
+                    m_responce = HTTP_500;
+                    return;
                   }
                   else {
-                    std::cerr << "[TEMPLATE] Value of " << e << " is unsupported type!\n";
+                    std::cerr << colorize(RED) << "[TEMPLATE] Value of " << e << " is unsupported type!" << colorize(NC) << "\n";
                     res = "";
                     useMath = false;
+                    m_responce = HTTP_500;
+                    return;
                   }
 
                   lv = replace(lv, e, res);
@@ -526,11 +568,13 @@ namespace rweb
                 if (auto f = std::find_if(lv.begin(), lv.end(), [](char c){return isalpha(c);}) == lv.end())
                 {
                   //math does not have any variables -> ok
-                  resL = calculate(lv);
                 } else {
-                  std::cout << "[TEMPLATE] Cannot form a math statement. Found undeclared variable in " << '(' << lv << ')' << "\n";
-                  resL = 0;
+                  std::string fnd = lv.substr(f, lv.find(" ", f)-f);
+                  std::stringstream ss;
+                  ss << std::hash<std::string>{}(fnd);
+                  lv = replace(lv, fnd, ss.str());
                 }
+                resL = calculate(lv);
               }
             }
             //math for right part
@@ -557,14 +601,18 @@ namespace rweb
                     res = ss.str();
                   } else if (value->is_array())
                   {
-                    std::cerr << "[TEMPLATE] Failed to set array value for " << e << "\n";
+                    std::cerr << colorize(RED) << "[TEMPLATE] Failed to set array value for " << e << colorize(NC) << "\n";
                     res = "";
                     useMath = false;
+                    m_responce = HTTP_500;
+                    return;
                   }
                   else {
-                    std::cerr << "[TEMPLATE] Value of " << e << " is unsupported type!\n";
+                    std::cerr << colorize(RED) << "[TEMPLATE] Value of " << e << " is unsupported type!" << colorize(NC) << "\n";
                     res = "";
                     useMath = false;
+                    m_responce = HTTP_500;
+                    return;
                   }
 
                   rv = replace(rv, e, res);
@@ -575,11 +623,13 @@ namespace rweb
                 if (auto f = std::find_if(rv.begin(), rv.end(), [](char c){return isalpha(c);}) == rv.end())
                 {
                   //math does not have any variables -> ok
-                  resR = calculate(rv);
                 } else {
-                  std::cout << "[TEMPLATE] Cannot form a math statement. Found undeclared variable in " << '(' << rv << ')' << "\n";
-                  resR = 0;
+                  std::string fnd = rv.substr(f, rv.find(" ", f)-f);
+                  std::stringstream ss;
+                  ss << std::hash<std::string>{}(fnd);
+                  rv = replace(rv, fnd, ss.str());
                 }
+                resR = calculate(rv);
               }
             }
           }
@@ -597,6 +647,8 @@ namespace rweb
             std::cerr << colorize(RED) << "[TEMPLATE] Unknown operation! Something went wrong in the 'if' statement! Condition will be counted as false!" 
               << colorize(NC) << "\n";
             status = false;
+            m_responce = HTTP_500;
+            return;
           }
 
           std::string result = "";
@@ -609,13 +661,16 @@ namespace rweb
 
           if (!findOperator(m_html, startPos, "endif", &endif_pos, &endif_size))
           {
-            std::cerr << "[TEMPLATE] Failed to find endif!\n";
+            std::cerr << colorize(RED) <<  "[TEMPLATE] Failed to find endif!" << colorize(NC) << "\n";
+            m_responce = HTTP_500;
             return;
           }
 
           if (endif_pos == 0) //no endif
           {
-            std::cerr << "[TEMPLATE] Cannot find endif!\n";
+            std::cerr << colorize(RED) << "[TEMPLATE] Cannot find endif!" << colorize(NC) << "\n";
+            m_responce = HTTP_500;
+            return;
             result = "";
           } else { //all ok
             if (status) //true section
@@ -651,9 +706,11 @@ namespace rweb
 
           html.replace(startPos, endif_pos+endif_size-startPos, result);
         } else {
-          std::cerr << "[TEMPLATE] Error: unknown operator " << '"' << elements[0] << '"' << "\n";
+          std::cerr << colorize(RED) << "[TEMPLATE] Error: unknown operator " << '"' << elements[0] << '"' << colorize(NC) << "\n";
           std::cout << m_html << "\n";
           html.replace(i, len+4, "");
+          m_responce = HTTP_500;
+          return;
         }
 
         m_html = html;
@@ -694,14 +751,18 @@ namespace rweb
               res = ss.str();
             } else if (value->is_array())
             {
-              std::cerr << "[TEMPLATE] Failed to set array value for " << name << "\n";
+              std::cerr << colorize(RED) << "[TEMPLATE] Failed to set array value for " << name << colorize(NC) << "\n";
               res = "";
               useMath = false;
+              m_responce = HTTP_500;
+              return;
             }
             else {
-              std::cerr << "[TEMPLATE] Value of " << name << " is unsupported type!\n";
+              std::cerr << colorize(RED) << "[TEMPLATE] Value of " << name << " is unsupported type!" << colorize(NC) << "\n";
               res = "";
               useMath = false;
+              m_responce = HTTP_500;
+              return;
             }
 
             body = replace(body, l, res);
@@ -720,8 +781,10 @@ namespace rweb
             stream << (float)r;
             body = stream.str();
           } else {
-            std::cout << "[TEMPLATE] Cannot form a math statement. Found undeclared variable in " << '(' << body << ')' << "\n";
+            std::cout << colorize(RED) << "[TEMPLATE] Cannot form a math statement. Found undeclared variable in " << '(' << body << ')' << colorize(NC) << "\n";
             body = "";
+            m_responce = HTTP_500;
+            return;
           }
         }
 
