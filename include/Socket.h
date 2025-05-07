@@ -4,6 +4,9 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#elif __linux__
+#include <netinet/in.h>
+#include <netdb.h>
 #endif
 
 #define SERVER_BUFLEN 64512
