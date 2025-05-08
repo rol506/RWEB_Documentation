@@ -56,6 +56,14 @@ namespace rweb
   //---HTTP RESPONCES---
   const std::string HTTP_200 = "HTTP/1.1 200 OK\r\n";
 
+  const std::string HTTP_300 = "HTTP/1.1 300 Multiple Choice\r\n";
+  const std::string HTTP_301 = "HTTP/1.1 301 Moved Permanently\r\n";
+  const std::string HTTP_302 = "HTTP/1.1 302 Found\r\n";
+  const std::string HTTP_303 = "HTTP/1.1 303 See Other\r\n";
+  const std::string HTTP_304 = "HTTP/1.1 304 Not Modified\r\n";
+  const std::string HTTP_307 = "HTTP/1.1 307 Temporary Redirect\r\n";
+  const std::string HTTP_308 = "HTTP/1.1 308 Permanent Redirect\r\n";
+
   const std::string HTTP_400 = "HTTP/1.1 400 Bad Request\r\n";
   const std::string HTTP_401 = "HTTP/1.1 401 Unauthorized\r\n";
   const std::string HTTP_403 = "HTTP/1.1 403 Forbidden\r\n";

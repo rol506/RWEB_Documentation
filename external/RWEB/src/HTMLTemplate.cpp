@@ -823,4 +823,9 @@ namespace rweb
   {
     return m_contentType;
   } 
+
+  const std::string& HTMLTemplate::getRedirectLocation() const
+  {
+    return m_location;
+  }
 }
