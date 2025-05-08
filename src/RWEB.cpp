@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include "../include/Socket.h"
+#include "HTMLTemplate.h"
 
 #ifdef __linux__
 #include <signal.h>
@@ -166,6 +167,13 @@ namespace rweb
     serverResources.insert({URLpath, {resourcePath, contentType}});
   }
 
+  HTMLTemplate redirect(const std::string& location, const std::string& statusResponce)
+  {
+    HTMLTemplate temp = createTemplate("", statusResponce);
+    temp.m_location = location;
+    return temp;
+  }
+
   void setPort(const int port)
   {
     serverPort = port;
@@ -294,11 +302,26 @@ namespace rweb
       }
     } else {
       HTMLTemplate temp = it->second(r);
-      res = temp.getStatusResponce() + "Content-Type: " + temp.getContentType() + "\r\nContent-Length: " + std::to_string(temp.getHTML().size()) + "\r\n\r\n";
-      res += temp.getHTML();
+      std::string code = temp.getStatusResponce().substr(9, 3);
+      if (!temp.getFileName().empty()) //non-empty body
+      {
+        res = temp.getStatusResponce() + "Content-Type: " + temp.getContentType() + "\r\nContent-Length: " + std::to_string(temp.getHTML().size()) + "\r\n";
+      } else {
+        res = temp.getStatusResponce();
+      }
+
+      //---ADDITIONAL HEADERS---
+      if (code[0] == '3') //redirect
+      {
+        res += "Location: " + temp.getRedirectLocation() + "\r\n";
+      }
+
+      //end of header section
+      res += "\r\n";
+      res += temp.getHTML(); //body
 
       std::cout << "[RESPONCE] ";
-      if (temp.getStatusResponce().substr(9, 1) == "2")
+      if (code[0] == '2' || code[0] == '3')
       {
         std::cout << colorize(NC);
       } else {
@@ -367,17 +390,25 @@ namespace rweb
 
   HTMLTemplate createTemplate(const std::string& templatePath, const std::string& statusResponce)
   {
-    std::string file = getFileString(templatePath);
-    std::string resp = statusResponce;
-    if (file.empty())
+    std::string file;
+    std::string resp;
+    if (templatePath != "")
     {
-      std::cerr << "[TEMPLATE] File " << templatePath << " is empty!\n";
-      resp = HTTP_500;
+      file = getFileString(templatePath);
+      resp = statusResponce;
+      if (file.empty())
+      {
+        std::cerr << "[TEMPLATE] File " << templatePath << " is empty!\n";
+        resp = HTTP_500;
+      }
+    } else {
+      file = "";
+      resp = statusResponce;
     }
 
     HTMLTemplate temp(file);
-    temp.m_contentType = "text/html";
-    temp.m_encoding = "utf-8";
+    temp.m_contentType = templatePath == "" ? "" : "text/html";
+    temp.m_encoding = templatePath == "" ? "" : "utf-8";
     temp.m_responce = resp;
     temp.m_templateFileName = templatePath;
     return temp;

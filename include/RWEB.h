@@ -50,6 +50,7 @@ namespace rweb {
   void setPort(const int port);
   void addRoute(const std::string& path, const HTTPCallback callback);
   void addResource(const std::string& URLpath, const std::string& resourcePath, const std::string& contentType);
+  HTMLTemplate redirect(const std::string& location, const std::string& statusResponce=HTTP_303);
   HTMLTemplate createTemplate(const std::string& templatePath, const std::string& statusResponce);
   std::string sendFile(const std::string& statusResponce, const std::string& filePath, const std::string& contentType);
 
