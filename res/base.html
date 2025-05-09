@@ -1,0 +1,21 @@
+{% block aside %}
+<ul>
+  {% for m in menu %}
+  {% if {{m.url}} == CurrentURL %}
+  <li class="active"><a href="{{m.url}}"><button>{{m.title-ru}}</button></a></li>
+  {% else %}
+  <li><a href="{{m.url}}"><button>{{m.title-ru}}</button></a></li>
+  {% endif %}
+  {% endfor %}
+</ul>
+{% endblock %}
+
+{% block preloading %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cascadia+Mono:ital,wght@0,200..700;1,200..700&family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Rubik:ital,wght@0,300..900;1,300..900&family=Unbounded:wght@200..900&display=swap" rel="stylesheet">
+
+<link href="/style.css" rel="stylesheet">
+<script src="/prism.js" defer></script>
+<link rel="stylesheet" href="prism.css">
+{% endblock %}

@@ -23,13 +23,31 @@ int main()
     return -1;
   }
 
-  rweb::setPort(4222);
+  rweb::setPort(4221);
+  rweb::setProfilingMode(false);
 
-  rweb::addRoute("/", &homePage);
-  rweb::addRoute("/index", &homePage);
-  rweb::addRoute("/home", &homePage);
+  rweb::addRoute("/", [](const rweb::Request r){return rweb::redirect("/Getting-Started", rweb::HTTP_307);});
+  rweb::addRoute("/home", [](const rweb::Request r){return rweb::redirect("/Getting-Started", rweb::HTTP_307);});
+  rweb::addRoute("/index", [](const rweb::Request r){return rweb::redirect("/Getting-Started", rweb::HTTP_307);});
+  rweb::addRoute("/Getting-Started", &homePage);
+  rweb::addRoute("/Utils", [](const rweb::Request r){
+      rweb::HTMLTemplate temp = rweb::createTemplate("/utils.html", rweb::HTTP_200);
+      nlohmann::json json = nlohmann::json::parse(rweb::getFileString("config.json"));
+      json["CurrentURL"] = r.path;
+      temp.renderJSON(json);
+      return temp;
+  });
+  rweb::addRoute("/Templates", [](const rweb::Request r){
+      rweb::HTMLTemplate temp = rweb::createTemplate("/templates.html", rweb::HTTP_200);
+      nlohmann::json json = nlohmann::json::parse(rweb::getFileString("config.json"));
+      json["CurrentURL"] = r.path;
+      temp.renderJSON(json);
+      return temp;
+  });
 
   rweb::addResource("/style.css", "style.css", "text/css");
+  rweb::addResource("/prism.css", "prism/prism.css", "text/css");
+  rweb::addResource("/prism.js", "prism/prism.js", "text/javascript");
 
   std::cout << "----------SERVER CONFIG----------\n";
   std::cout << "Debug: " << (rweb::getDebugState() ? "ENABLED" : "DISABLED") << "\n";
@@ -60,9 +78,9 @@ static rweb::HTMLTemplate homePage(const rweb::Request r)
   rweb::HTMLTemplate temp = rweb::createTemplate("index.html", rweb::HTTP_200);
 
   //std::cout << rweb::getFileString("config.json");
-  //nlohmann::json json = nlohmann::json::parse(rweb::getFileString("config.json"));
-
-  //temp.renderJSON(json);
+  nlohmann::json json = nlohmann::json::parse(rweb::getFileString("config.json"));
+  json["CurrentURL"] = r.path;
+  temp.renderJSON(json);
 
   return temp;
 }

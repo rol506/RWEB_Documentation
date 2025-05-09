@@ -3,10 +3,185 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title></title>
-    <link href="css/style.css" rel="stylesheet">
+    <title>{{title}}</title>
+    {% loadblock("base.html", preloading) %}
   </head>
   <body>
-  
+    <header>
+      <h3><a href="/">RWEB Documentation</a></h3>
+    </header>
+    <div class="wrapper">
+      <aside id="sidebar">
+        {% loadblock("base.html", aside) %} 
+      </aside>
+      <main>
+        <div class="content">
+          <h1>Быстрый старт</h1>
+
+          <h2 id="installing">Установка</h2>
+          <p>Для того, чтобы начать работу с RWEB, его нужно добавить в проект.</p>
+          <p>Если в проекте используется CMake, Вы можете получить исходный код RWEB на <a href="https://github.com/rol506/RWEB" class="anim" target="_blank">
+            https://github.com/rol506/RWEB
+          </a>. Далее необходимо добавить в ваш <b>CMakeLists.txt</b> строчку <code class="language-cpp">addSubdirectory(path/to/RWEB)</code> указав путь до фреймворка.
+          Наверняка Вы не захотите собирать автоматические тесты для RWEB (поскольку они нужны лишь при разработке нового функционала RWEB), поэтому вы можете удалить всё связанное с тестами 
+          и создание исполняемого файла <b>app</b> в <b>CMakeLists.txt</b> RWEB, а также удалить ненужные файлы и папки, которые указаны в <b>README.md</b></p>
+
+          <h2>Пример приложения</h2>
+          <pre><code class="language-cpp">
+#include &lt;iostream&gt;
+#include &lt;RWEB.h&gt; //подключение заголовка RWEB
+
+int main()
+{
+    if (!rweb::init(true, 1)) //инициализация
+    {
+        std::cout &lt;&lt; "Failed to initialize RWEB!\n";
+        return -1;
+    }
+
+    rweb::setPort(4221); //задаем порт
+
+    rweb::addRoute("/", [](const rweb::Request r) //добавляем обработчик для пути /
+    {
+        return rweb::redirect("/Getting-Started", rweb::HTTP_307);
+    });
+
+    rweb::addResource("/style.css", "style.css", "text/css"); //добавляем статический ресурс
+
+    if (!rweb::startServer(1000)) //запускаем сервер
+    {
+        rweb::closeServer();
+        return -1;
+    }
+
+    return 0;
+}
+          </code></pre>
+
+          <h4 id="init">Инициализация</h4>
+          <p><code class="language-cpp">rweb::init(bool debug,  unsigned int level)</code><br>
+          Для начала нужно инициализировать фреймворк с помощью 
+          данной функции. Первый параметр принимает boolean значение, отвечающее за режим отладки для приложения. Второй параметр используется только в режиме отладки 
+          и определяет количество шагов назад при поиске пути к папке ресурсов. Например с структурой:<br><ul>
+            <li>external
+              <ul>
+                <li>RWEB</li>
+              </ul>
+            </li>
+            <li>res
+              <ul>
+                <li>index.html</li>
+              </ul>
+            </li>
+            <li>src
+              <ul>
+                <li>main.cpp</li>
+              </ul>
+            </li>
+            <li>build
+              <ul>
+                <li>build files...</li>
+                <li>res
+                  <ul>
+                    <li>index.html</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+          В процессе разработки Вы, вероятно, захотите, не пересобирая проект, редактировать содержимое сайта. Но исполняемый файл ищет ресурсы в <b>build/res/</b>, 
+          которая обновляется только при пересборке. Второй аргумент определяет на сколько уровней шагнуть назад, чтобы найти активную папку с ресурсами 
+          в директории проекта, к которой удобнее всего подобраться. При значении 1 фреймворк будет искать директорию относительно <b>project/build/res</b> -&gt; 
+          <b>project/res/</b>. На компиляторе Windows MSVC шаг директорий будет увеличен на 1 автоматически (для сохранения кроссплатформенности, ведь на Windows 
+          добавляется папка <b>Debug</b>/<b>Release</b>).
+          </p>
+
+          <h4>Настройка сервера</h4>
+          <p id="addRoute">Далее нужно настроить сервер. Я имею в виду поведение различных <b>путей</b> сайта и остальные настройки сервера (порт, сжатие и т.д.).</p>
+          <p><code class="language-cpp">rweb::addRoute(const std::string&amp; path, const HTTPCallback callback)</code><br> Используется для настройки 
+          <b>путей сайта.</b>
+          Первый аргумент - это сам путь. Он может принимать вид: <b>/</b>, <b>/index</b>. Обратите внимание, что путь указывается с "/" в начале. Второй аргумент - 
+          это функция-обработчик для пути. HTTPCallback определен с помощью
+          <code class="language-cpp">typedef HTMLTemplate (*HTTPCallback)(const Request r);</code>, то есть функция-обработчик 
+          принимает структуру с данными запроса и возвращает структуру с данными ответа. Их мы рассмотрим ниже.</p>
+
+          <p id="addResource">
+          <code class="language-cpp">addResource(const std::string&amp; URLpath, const std::string&amp; resourcePath, const std::string&amp; contentType);</code><br>
+          Используется для определения статических ресурсов, например файла CSS или Javascript. Первый аргумент как и в 
+          <code class="language-cpp">rweb::addRoute()</code> определяет путь (к нему применяются те же требования). 
+          Второй аргумент определяет путь к файлу относительно папки текущей папки ресурсов. Третий аргумент определяет <b>MIME</b> тип содержимого файла 
+          (например text/css, text/javascript). Когда пользователь запросит путь указанный статическим ресурсом, он в ответе получит файл в сыром виде, 
+          что идеально подходит для файлов изображений, css стилей и т.д. Стоит упомянуть, что при определении одинаковых URL путей для статического содержимого и 
+          <a class="anim" href="#addRoute">динамического пути</a> будет использоваться путь, заданный через 
+          <a class="anim" href="#addRoute" style="color: var(--text-color);"><b>rweb::addRoute</b></a>.</p>
+
+          <p id="setPort"><code class="language-cpp">rweb::setPort(const int port)</code><br>
+          Очень вероятно, что Вы захотите, чтобы сайт работал не на отладочном порте 4221.
+          Эта функция принимает лишь один параметр. Это номер порта, на котором будет работать сервер.</p>
+
+          <h4 id="startServer">Запуск сервера и отключение сервера</h4>
+          <p><code class="language-cpp no-back">bool startServer(const int clientQueue);</code><br>
+          После настройки нужно запустить сервер с помощью этой функции, которая в случае ошибки вернет 
+          <b>false</b>. Первым и единственным аргументом функции является количество клиентов, которых надо поставить в очередь на обработку. Например, когда 
+          много клиентов подключается одновременно, сервер не может обработать всех сразу (пусть он и многопоточный). В таком случае он поставит определенное 
+          количество клиентов в очередь на подключение. Это возможность предоставляется драйвером Вашей сетевой карты. Значение количества клиентов в очереди 
+          следует рассчитывать исходя из производительности сервера. Ведь, если будет слишком много клиентов в очереди, они будут ждать подключения очень долго. 
+          В таком случае лучше будет для клиента переподключится, что и произойдет, ведь если клиент не может встать в очередь, его запрос будет отклонен. 
+          Но не стоит боятся что слишком много запросов клиентов будут отклонены, в реальных условиях обычно не бывает <b>такого</b> количества клиентов 
+          (разве что при умышленных атаках на сервер). Также в современных браузерах есть возможность автоматического переподключения после отклоненного запроса.</p>
+
+          <p><code class="language-cpp">void rweb::closeServer()</code><br>
+          Вы можете выключить сервер с помощью нее, например когда выполняется какое-либо условие (или же через <span style="white-space: nowrap;">Ctrl + C</span>). 
+          Эта функция в зависимости от системы имеет разную реализацию, принимает разные аргументы и имеет разное возвращаемое значение. Стоит упомянуть, что 
+          в любых случаях ее использования, Вам, как пользователю не стоит ничего передавать в нее или принимать от нее т.к. это все необходимости Вашей системы, 
+          и для Вас эти значения не имеют никакого смысла. Вы можете в этом убедится, изучив реализацию. Чтобы выключить сервер Вы должны вызывать данную 
+          функцию без аргументов и не записывать ее возвращаемое значение (оно есть только на Windows и всегда <b>TRUE</b>).</p>
+
+          <h4 id="redirect">Перенаправления</h4>
+          <p><code class="language-cpp">HTMLTemplate redirect(const std::string&amp; location, const std::string&amp; statusResponce);</code><br>
+          Вы можете использовать эту функцию для перенаправления пользователя на другую страницу сайта или на другой сайт. Первым аргументов она принимает адрес места, куда надо перенаправить 
+          пользователя. Если перенаправление идет на страницу того же сайта, то необходимо добавить / в начале адреса (например /index, /login). В случае если перенаправление идет на другой сайт, 
+          то требуется указать полную ссылку с указанием протокола (например https://github.com/rol506). Вторым аргументом идет статус ответа, который определяет 
+          <a href="https://developer.mozilla.org/ru/docs/Web/HTTP/Guides/Redirections" class="anim" target="_blank">тип перенаправления</a>. По умолчанию тип задан <b>HTTP 303 See Other</b>, 
+          то есть обычноеперенаправление. Пример использования:
+<pre><code class="language-cpp">rweb::addRoute("/", [](const rweb::Request r)
+{
+  return rweb::redirect("/some_address", rweb::HTTP_307);
+});</code></pre></p>
+
+          <h4 id="profiling">Профилирование</h4>
+          <p><code class="language-cpp">void rweb::setProfilingMode(const bool enabled);</code><br>
+          Задает режим профилирования (вкл/выкл). В режиме профилирования после каждого обработанного запроса в консоли будет выведено время, затраченное на создание ответа.</p>
+
+          <h4 id="getSettings">Получение настроек</h4>
+          <p>С помощью ниже представленных функций Вы можете получить текущие настройки сервера.</p>
+          <p><code class="language-cpp">std::string rweb::getResourcePath();</code><br>
+          Возвращает путь к текущей папке ресурсов.</p>
+          <p><code class="language-cpp">int rweb::getPort();</code><br>
+          Вовзвращает текущий порт работы сервера.</p>
+          <p><code class="language-cpp">bool rweb::getDebugState();</code><br>
+          Возвращает режим отладки (<b>true</b>/<b>false</b>).</p>
+          <p><code class="language-cpp">bool rweb::getProfilingMode();</code><br>
+          Возвращает режим профилирования (<b>true</b>/<b>false</b>).</p>
+
+        </div>
+      </main>
+      <aside id="rightbar">
+        <h4>Содержание</h4>
+        <ul>
+          <li><a href="#installing" class="anim">Установка</a></li>
+          <li><a href="#init" class="anim">Инициализация</a></li>
+          <li><a href="#addRoute" class="anim">Обработчик пути</a></li>
+          <li><a href="#addResource" class="anim">Обработчик ресурса</a></li>
+          <li><a href="#setPort" class="anim">Назначение порта</a></li>
+          <li><a href="#startServer" class="anim">Запуск сервера</a></li>
+          <li><a href="#startServer" class="anim">Выключение сервера</a></li>
+          <li><a href="#redirect" class="anim">Перенаправления</a></li>
+          <li><a href="#profiling" class="anim">Профилирование</a></li>
+          <li><a href="#getSettings" class="anim">Получение настроек</a></li>
+        </ul>
+      </aside>
+      <footer></footer>
+    </div>
   </body>
 </html>

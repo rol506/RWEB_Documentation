@@ -1,0 +1,203 @@
+* {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --background-color: #040802;
+  --background-accent-color: #052901;
+  --background-hover-color: #222;
+  --border-color: #34333b;
+  --text-color: #eeeeee;
+  --accent-color: #16d900;
+}
+
+h1, h2, h3, h4, h5, h6, p {
+  margin: 15px 0;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--background-color);
+  min-height: 100vh;
+  scroll-behavior: smooth;
+  height: auto;
+  scroll-padding-top: calc(74px + 10px);
+}
+
+header {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color);
+  width: 100%;
+  position: sticky;
+  align-self: start;
+  top: 0;
+  background: var(--background-color);
+  grid-area: navbar;
+  z-index: 10;
+
+  > h3 > a {
+    text-decoration: none;
+    color: var(--text-color);
+    padding: 0 20px;
+  }
+}
+
+footer {
+  grid-area: footer;
+  min-height: 40vh;
+}
+
+div.wrapper {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+  "navbar navbar navbar"
+  "sidebar main rightbar"
+  "sidebar footer rightbar";
+  transition: 0.2s ease-out all;
+  color: var(--text-color);
+}
+
+@media screen and (max-width: 800px)
+{
+  div.wrapper {
+    grid-template-columns: 1fr;
+  }
+
+  #sidebar, #rightbar {
+    display: none;
+  }
+}
+
+#sidebar {
+  grid-area: sidebar;
+  padding: 0 10px;;
+  position: sticky;
+  align-self: start;
+  top: 74px;
+  height: calc(100vh - 74px);
+  background: var(--background-color);
+  border-right: 1px solid var(--border-color);
+
+  > ul {
+    list-style: none;
+    padding: 10px;
+    position: sticky;
+  }
+
+  > ul > li > a > button {
+    margin: 4px 0;
+    border-radius: 8px;
+    transition: 0.2s ease-out all;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 1rem;
+    width: 100%;
+    text-align: left;
+  }
+
+  > ul > li:not(.active) > a > button:hover {
+    background: var(--background-hover-color);
+  }
+
+  > ul > li.active > a > button {
+    background: var(--background-accent-color);
+  }
+
+  > ul > li > a {
+    position: relative;
+    text-decoration: none;
+    color: var(--text-color);
+    text-decoration: none;
+  }
+}
+
+#sidebar ul li.active a button {
+  --text-color: var(--accent-color);
+}
+
+#sidebar ul li.active a {
+  color: var(--accent-color);
+}
+
+#rightbar {
+  grid-area: rightbar;
+  padding: 0 10px;
+  position: sticky;
+  top: 74px;
+  align-self: start;
+  height: calc(100vh - 74px);
+  background: var(--background-color);
+  border-left: 1px solid var(--border-color);
+
+  > ul {
+    list-style: none;
+    padding: 10px;
+  }
+
+  > ul > li {
+    margin: 20px 0;
+  }
+
+  > ul > li > a {
+    color: var(--text-color);
+  }
+}
+
+main {
+  grid-area: main;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--background-color);
+}
+
+main div.content {
+  text-align: left;
+  justify-content: flex-start;
+  width: max(60%, 1000px);
+  padding: 10px;
+}
+
+code {
+  font-size: 1rem;
+  color: black;
+  font-family: "Cascadia Mono";
+  white-space: nowrap;
+}
+
+div.content p {
+  text-indent: 15px;
+}
+
+a.anim {
+  position: relative;
+  text-decoration: none;
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+a.anim::before {
+  content: "";
+  position: absolute;
+  display: block;
+  width: 100%;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: var(--accent-color);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+a.anim:hover::before {
+  transform: scaleX(1);
+}
+
+@media screen and (max-width: 800px)
+{
+  div.code {
+    font-size: 0.75rem;
+  }
+}

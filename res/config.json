@@ -1,0 +1,17 @@
+{
+  "title": "RWEB DOCS",
+  "menu": [
+    {
+      "title-ru": "Быстрый старт",
+      "url": "/Getting-Started"
+    },
+    {
+      "title-ru": "Шаблоны",
+      "url": "/Templates"
+    },
+    {
+      "title-ru": "Утилиты",
+      "url": "/Utils"
+    }
+  ]
+}
