@@ -1,10 +1,10 @@
 {% block aside %}
 <ul>
   {% for m in menu %}
-  {% if {{m.url}} == CurrentURL %}
-  <li class="active"><a href="{{m.url}}"><button>{{m.title-ru}}</button></a></li>
+  {% if m.url == CurrentURL %}
+  <li class="active"><a href="{{m.url}}"><button>{{m.title_ru}}</button></a></li>
   {% else %}
-  <li><a href="{{m.url}}"><button>{{m.title-ru}}</button></a></li>
+  <li><a href="{{m.url}}"><button>{{m.title_ru}}</button></a></li>
   {% endif %}
   {% endfor %}
 </ul>

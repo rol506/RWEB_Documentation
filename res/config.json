@@ -1,16 +1,16 @@
 {
-  "title": "RWEB DOCS",
+  "title": "RWEB Документация",
   "menu": [
     {
-      "title-ru": "Быстрый старт",
+      "title_ru": "Быстрый старт",
       "url": "/Getting-Started"
     },
     {
-      "title-ru": "Шаблоны",
+      "title_ru": "Шаблоны",
       "url": "/Templates"
     },
     {
-      "title-ru": "Утилиты",
+      "title_ru": "Утилиты",
       "url": "/Utils"
     }
   ]
