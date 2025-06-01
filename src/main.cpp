@@ -44,6 +44,7 @@ int main()
       temp.renderJSON(json);
       return temp;
   });
+  rweb::setErrorHandler(404, [](const rweb::Request r){return rweb::redirect("/index");});
 
   rweb::addResource("/style.css", "style.css", "text/css");
   rweb::addResource("/prism.css", "prism/prism.css", "text/css");
