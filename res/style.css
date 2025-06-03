@@ -171,6 +171,11 @@ div.content p {
   text-indent: 15px;
 }
 
+a {
+  color: var(--text-color);
+  text-decoration: none;
+}
+
 a.anim {
   position: relative;
   text-decoration: none;

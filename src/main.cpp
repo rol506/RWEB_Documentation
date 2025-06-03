@@ -1,3 +1,4 @@
+#include "Utility.h"
 #include <iostream>
 #include <cstdlib>
 
@@ -39,6 +40,13 @@ int main()
   });
   rweb::addRoute("/Templates", [](const rweb::Request r){
       rweb::HTMLTemplate temp = rweb::createTemplate("/templates.html", rweb::HTTP_200);
+      nlohmann::json json = nlohmann::json::parse(rweb::getFileString("config.json"));
+      json["CurrentURL"] = r.path;
+      temp.renderJSON(json);
+      return temp;
+  });
+  rweb::addRoute("/POST-and-cookies", [](const rweb::Request r){
+      rweb::HTMLTemplate temp = rweb::createTemplate("postAndCookies.html", rweb::HTTP_200);
       nlohmann::json json = nlohmann::json::parse(rweb::getFileString("config.json"));
       json["CurrentURL"] = r.path;
       temp.renderJSON(json);

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{title}}</title>
+    {% loadblock("base.html", preloading) %}
+  </head>
+  <body>
+    <header>
+      <h3><a href="/">RWEB Documentation</a></h3>
+    </header>
+    <div class="wrapper">
+      <aside id="sidebar">
+        {% loadblock("base.html", aside) %} 
+      </aside>
+      <main>
+        <div class="content">
+
+          <h2 id="forms">Работа с POST формами</h2>
+          <p>Для работы с формами (&lt;form method="post"&gt;) в структуре запроса <code class="language-cpp">rweb::Request</code> существует член
+          <code class="language-cpp">std::map&lt;std::string, std::string&gt; body;</code>, который хранит пары ключ-значение, где ключ - это имя элемента ввода, 
+          а значение - это данные, которые он хранит. Это стандартный <code class="language-cpp">std::map</code>, так что Вы можете использовать данные через 
+          стандартные интерфейсы C++.</p>
+
+          <h2>Работа с куки (cookie)</h2>
+
+          <p><a href="https://developer.mozilla.org/ru/docs/Web/HTTP/Guides/Cookies" target="_blank" class="anim">HTTP cookie</a> (куки) - 
+          это небольшой фрагмент данных, который сервер отправляет браузеру пользователя. Браузер может сохранить этот фрагмент у себя и отправлять на сервер с 
+          каждым последующим запросом.<sup><a href="https://developer.mozilla.org/ru/docs/Web/HTTP/Guides/Cookies" target="_blank">MDN</a></sup></p>
+
+          <h3 id="cookieAccess">Получение текущих куки</h3>
+          <p>В RWEB получить значение куки можно через структуру <code class="language-cpp">rweb::Request</code>, внутри которой имеется член типа 
+          <code class="language-cpp">std::map&lt;std::string, std::string&gt; cookies;</code>, хранящий пары ключ-значение, в которых ключ - это имя куки, а значение - 
+          это данные, хранящиеся в куки.</p>
+
+          <h3 id="settingCookies">Задание куки</h3>
+          <p>Задать куки можно через класс шаблона <code class="language-cpp">rweb::HTMLTemplate</code></p>
+          <p><code class="language-cpp">const void HTMLTemplate::setCookie(const std::string&amp; name, const std::string&amp; value, const unsigned int maxAgeSeconds, const bool httpOnly);</code><br> 
+          Используется для задания куки. Первый аргумент - это имя куки, второй - это значение куки. Через третий аргумент можно управлять временем жизни куки, 
+          если он равен <b>0</b>, то куки будет создан, как <a href="https://developer.mozilla.org/ru/docs/Web/HTTP/Guides/Cookies#сессионные_cookie" 
+            class="anim" target="_blank">сессионный</a>, иначе же ему будет задано указанное <b>время жизни в секундах</b>. Также для куки можно задать параметр 
+          <a href="https://developer.mozilla.org/ru/docs/Web/HTTP/Guides/Cookies#secure_безопасные_и_httponly_куки" class="anim" target="_blank">
+            доступности из javascript</a> (или <b>http only</b>). Если четвертый параметр будет указан <b>true</b>, то куки будет обозначен, как <b>HttpOnly</b>.</p>
+
+          <p><code class="language-cpp">const std::optional&lt;std::string&gt; HTMLTemplate::getCookieValue(const std::string&amp; name) const;</code><br>
+          Используется для получения значений <b>уже заданных в шаблоне куки</b>. То есть для куки, которые Вы уже задали в шаблоне, чтобы например изменить их.
+          Первый аргумент - это имя заданного в шаблоне куки. Метод вернет значение этого куки.
+          </p>
+        </div>
+      </main>
+      <aside id="rightbar">
+        <h4>Содержание</h4>
+        <ul>
+          <li><a href="#forms" class="anim">POST формы</a></li>
+          <li><a href="#cookieAccess" class="anim">Получение куки</a></li>
+          <li><a href="#settingCookies" class="anim">Задание куки</a></li>
+        </ul>
+      </aside>
+      <footer></footer>
+    </div>
+  </body>
+</html>

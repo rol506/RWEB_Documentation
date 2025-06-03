@@ -18,13 +18,32 @@
         <div class="content">
           <h1>Быстрый старт</h1>
 
-          <h2 id="installing">Установка</h2>
-          <p>Для того, чтобы начать работу с RWEB, его нужно добавить в проект.</p>
-          <p>Если в проекте используется CMake, Вы можете получить исходный код RWEB на <a href="https://github.com/rol506/RWEB" class="anim" target="_blank">
-            https://github.com/rol506/RWEB
-          </a>. Далее необходимо добавить в ваш <b>CMakeLists.txt</b> строчку <code class="language-cpp">addSubdirectory(path/to/RWEB)</code> указав путь до фреймворка.
-          Наверняка Вы не захотите собирать автоматические тесты для RWEB (поскольку они нужны лишь при разработке нового функционала RWEB), поэтому вы можете удалить всё связанное с тестами 
-          и создание исполняемого файла <b>app</b> в <b>CMakeLists.txt</b> RWEB, а также удалить ненужные файлы и папки, которые указаны в <b>README.md</b></p>
+          <h2>Создание проекта</h2>
+          <p>Для того, чтобы создать проект с RWEB потребуется git, cmake (желательно новейшей версии) и компилятор С++.</p>
+          <ol>
+            <li>Создайте пустую папку проекта (независимо от того какую среду разработки Вы используете) и откройте ее в терминале.</li>
+            <li>Инициализируйте локальный git репозиторий - <code class="language-bash">git init</code></li>
+            <li>Создайте файл CMakeLists.txt и запишите туда
+            <pre><code class="language-cmake">cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
+project(your_project_name)
+add_executable(your_executable_name
+  src/main.cpp
+)
+target_link_libraries(your_executable_name path/to/RWEB)</code></pre>заменив <b>your_project_name</b> на имя вашего проекта, и <b>your_executable_name</b> на имя исполняемого файла проекта.</li>
+            <li>Создайте будущие файлы исходного кода проекта (например src/main.cpp) и добавьте их в CMakeLists.txt вместо src/main.cpp</li>
+            <li>Создайте папку <b>res</b> для хранения ресурсов</li>
+            <li>Зафиксируйте изменения - <code class="language-bash">git add *</code>, далее <code class="language-bash">git commit -m "initial commit"</code></li>
+            <li>Добавьте RWEB в проект - <code class="language-bash">git subtree add https://github.com/rol506/RWEB master --squash --prefix=external/RWEB</code>, 
+              вместо <b style="white-space: nowrap;">external/RWEB</b> Вы можете задать другое место для RWEB в проекте.</li>
+            <li>Удалите все ненужное из CMakeLists.txt в RWEB (все ниже отметки в файле)</li>
+            <li>В файле CMakeLists.txt вашего проекта замените <b>path/to/RWEB</b> на относительный путь от этого файла до CMakeLists.txt RWEB'а.</li>
+            <li>В папке проекта создайте папку <b>build</b></li>
+            <li>Откройте ее в терминале и введите <code class="language-bash">cmake ..</code> - Cmake создаст файлы для проекта Visual Studio (.sln), если Вы 
+            на Windows</li>
+            <li>Создайте базовое (например Hello, World) приложение</li>
+            <li>Во все той же, открытой в терминале, папке <b>build</b> используйте <code class="language-bash">cmake --build .</code> - Сmake построит 
+            исполняемый файл из кода.</li>
+          </ol>
 
           <h2>Пример приложения</h2>
           <pre><code class="language-cpp">
@@ -43,7 +62,10 @@ int main()
 
     rweb::addRoute("/", [](const rweb::Request r) //добавляем обработчик для пути /
     {
-        return rweb::redirect("/Getting-Started", rweb::HTTP_307);
+      rweb::HTMLTemplate temp = rweb::createTemplate("index.html", rweb::HTTP_200);
+      nlohmann::json json = nlohmann::json::parse(rweb::getFileString("../menu.json"));
+      temp.renderJSON(json);
+      return temp;
     });
 
     rweb::addResource("/style.css", "style.css", "text/css"); //добавляем статический ресурс
@@ -106,7 +128,7 @@ int main()
           принимает структуру с данными запроса и возвращает структуру с данными ответа. Их мы рассмотрим ниже.</p>
 
           <p id="addResource">
-          <code class="language-cpp">addResource(const std::string&amp; URLpath, const std::string&amp; resourcePath, const std::string&amp; contentType);</code><br>
+          <code class="language-cpp">rweb::addResource(const std::string&amp; URLpath, const std::string&amp; resourcePath, const std::string&amp; contentType);</code><br>
           Используется для определения статических ресурсов, например файла CSS или Javascript. Первый аргумент как и в 
           <code class="language-cpp">rweb::addRoute()</code> определяет путь (к нему применяются те же требования). 
           Второй аргумент определяет путь к файлу относительно папки текущей папки ресурсов. Третий аргумент определяет <b>MIME</b> тип содержимого файла 
@@ -115,7 +137,7 @@ int main()
           <a class="anim" href="#addRoute">динамического пути</a> будет использоваться путь, заданный через 
           <a class="anim" href="#addRoute" style="color: var(--text-color);"><b>rweb::addRoute</b></a>.</p>
 
-          <p id="errorHandler"><code class="language-cpp">setErrorHandler(const int code, const HTTPCallback callback);</code><br>
+          <p id="errorHandler"><code class="language-cpp">rweb::setErrorHandler(const int code, const HTTPCallback callback);</code><br>
           Используется для задания обработчика ошибок. Первый аргумент - это код ошибки, второй аргумент - это сам обработчик. Обработчик ошибки будет вызван 
           в случае, когда сервер хочет отправить ответ с кодом, означающим ошибку (и этот код соответствует заданному). Это позволяет серверу при возникновении ошибки 
           не возвращать код ошибки клиенту, а принять какие-либо меры и отправить другой ответ клиенту, чтобы, например отобразить страницу, сообщающую пользователю, 
@@ -128,7 +150,7 @@ int main()
           Эта функция принимает лишь один параметр. Это номер порта, на котором будет работать сервер.</p>
 
           <h3 id="startServer">Запуск сервера и отключение сервера</h3>
-          <p><code class="language-cpp no-back">bool startServer(const int clientQueue);</code><br>
+          <p><code class="language-cpp no-back">bool rweb::startServer(const int clientQueue);</code><br>
           После настройки нужно запустить сервер с помощью этой функции, которая в случае ошибки вернет 
           <b>false</b>. Первым и единственным аргументом функции является количество клиентов, которых надо поставить в очередь на обработку. Например, когда 
           много клиентов подключается одновременно, сервер не может обработать всех сразу (пусть он и многопоточный). В таком случае он поставит определенное 
@@ -146,7 +168,7 @@ int main()
           функцию без аргументов и не записывать ее возвращаемое значение (оно есть только на Windows и всегда <b>TRUE</b>).</p>
 
           <h3 id="redirect">Перенаправления</h3>
-          <p><code class="language-cpp">HTMLTemplate redirect(const std::string&amp; location, const std::string&amp; statusResponce);</code><br>
+          <p><code class="language-cpp">HTMLTemplate rweb::redirect(const std::string&amp; location, const std::string&amp; statusResponce);</code><br>
           Вы можете использовать эту функцию для перенаправления пользователя на другую страницу сайта или на другой сайт. Первым аргументов она принимает адрес места, куда надо перенаправить 
           пользователя. Если перенаправление идет на страницу того же сайта, то необходимо добавить / в начале адреса (например /index, /login). В случае если перенаправление идет на другой сайт, 
           то требуется указать полную ссылку с указанием протокола (например https://github.com/rol506). Вторым аргументом идет статус ответа, который определяет 

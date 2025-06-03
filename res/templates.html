@@ -31,16 +31,21 @@
           и другие статусы ответа.
           </p>
 
+          <p>Также можно создать шаблон напрямую из строки. Это полезно, например, для отладки.
+          <pre><code class="language-cpp"><xmp>rweb::HTMLTemplate templ = "<h1>Debug data</h1>";</xmp></code></pre>
+          В таком случае шаблон создается с параметрами: кодировка - utf-8, статус ответа - 200, MIME-тип - text/html.
+          </p>
+
           <p><code class="language-cpp">void renderJSON(const nlohmann::json&amp; json);</code><br>
           Эта функция позволяет сформировать шаблон, используя, переданный JSON. Отметим, что RWEB сразу идет с библиотекой nlohmann::json. После успешного формирования шаблона, его можно вернуть 
           из функции обработчика. Каждый шаблон хранит в себе: HTML содержимое, имя файла, из которого собран шаблон, статус ответа, кодировка данных шаблона и MIME тип данных шаблона. Если 
           статус ответа равен <code class="language-cpp">rweb::HTTP_500</code>, значит шаблон был собран с ошибками, но Вам не нужно лишний раз проверять успешность его сборки, ведь при отправке 
           учитываются все данные шаблона, следовательно при ошибке сервер отправит код с ошибкой клиенту. <br>Пример работы с шаблонами приведен ниже
           <pre><code class="language-cpp">rweb::addRoute("/", [](const rweb::Request r){
-  rweb::HTMLTemplate template = rweb::createTemplate("index.html", rweb::HTTP_200);
+  rweb::HTMLTemplate templ = rweb::createTemplate("index.html", rweb::HTTP_200);
   nlohmann::json json = nlohmann::json::parse(rweb::getFileString("config.json"));
-  template.renderJSON(json);
-  return template;
+  templ.renderJSON(json);
+  return templ;
 });</code></pre>
           Если же Вы не хотите использовать шаблонный синтаксис, Вы можете вернуть шаблон без вызова <code class="language-cpp">HTMLTemplate::renderJSON()</code> или задать этот путь, как статический 
           ресурс с типом содержимого <b>text/html</b>, что рекомендуется.

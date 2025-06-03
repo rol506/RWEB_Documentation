@@ -12,6 +12,10 @@
     {
       "title_ru": "Утилиты",
       "url": "/Utils"
+    },
+    {
+      "title_ru": "POST и куки",
+      "url": "/POST-and-cookies"
     }
   ]
 }
