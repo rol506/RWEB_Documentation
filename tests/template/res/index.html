@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>testing my framework</title>
+    <link href="/style.css" rel="stylesheet">
+  </head>
+  <body>
+
+    <ul>
+    {% for m in menu.inner %}
+    <li>{{m.url}} - {{m.title}}</li>
+    {% endfor %}
+    </ul>
+
+    <h1>{{temp.url}} - {{temp.title.title2}}</h1>
+
+    {% for cat, msg in get_flashed_messages() %}
+    <p>{{cat}} - {{msg}}</p>
+    {% endfor %}
+ </body>
+</html>
