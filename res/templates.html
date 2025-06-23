@@ -127,6 +127,23 @@
           {% raw %}<code class="language-html">{% raw %} raw statement {{raw_variable}}{% endraw %}</code>.{% endraw %} Также <b>raw</b> можно вкладывать друг в 
           друга, но стоит помнить, что вложенные <b>raw</b> должны быть обязательно закрыты!</p>
 
+          <h3 id="flash">Flash-сообщения</h3>
+          <p>Flash-сообщения - это сообщения, которые сервер может отправить в ответе, например для обратной связи пользователю, и которые действуют только в рамках 
+          этого ответа. Такие сообщения хранят <b>категорию</b> (например <b>info</b>) и сам <b>текст сообщения</b>.</p>
+          <p><code class="language-cpp">void HTMLTemplate::flash(const std::string message, const std::string category)</code></p>
+
+          <p>Вот пример использования таких сообщений в шаблонах
+          {% raw %}<pre><code class="language-html"><xmp>{% for cat, msg in get_flashed_messages %}
+  <p>category: {{cat}} message: {{msg}}</p>
+{% endfor %}</xmp></code></pre></p>{% endraw %}
+
+          <p>Также <b>get_flashed_messages</b> может возвращать только 1 значение - текст сообщения.</p>
+{% raw %}<pre><code class="language-html"><xmp>{% for msg in get_flashed_messages %}
+  <p>message: {{msg}}</p>
+{% endfor %}</xmp></code></pre></p>{% endraw %}
+
+          <h4>После использования <b>get_flashed_messages</b> данные о flash-сообщениях стираются! Это значит, что ими можно воспользоваться лишь единожды!</h4>
+
         </div>
       </main>
       <aside id="rightbar">
@@ -139,6 +156,7 @@
           <li><a href="#for" class="anim">Цикл for</a></li>
           <li><a href="#block" class="anim">Блоки</a></li>
           <li><a href="#raw" class="anim">"Сырые" выражения</a></li>
+          <li><a href="#flash" class="anim">Flash-сообщения</a></li>
         </ul>
       </aside>
       <footer></footer>
